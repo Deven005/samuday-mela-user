@@ -1,3 +1,4 @@
 onlyBuiltDependencies:
   - '@firebase/util'
+  - '@vercel/speed-insights'
   - protobufjs

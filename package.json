@@ -6,12 +6,16 @@
     "dev": "cross-env NODE_OPTIONS='--inspect' next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "deploy": "next build --no-lint && vercel --prod"
   },
   "dependencies": {
+    "@vercel/analytics": "^1.5.0",
+    "@vercel/speed-insights": "^1.2.0",
     "clsx": "^2.1.1",
-    "firebase": "^11.6.0",
-    "firebase-admin": "^13.2.0",
+    "firebase": "^11.6.1",
+    "firebase-admin": "^13.3.0",
     "next": "15.2.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -27,8 +31,10 @@
     "@types/react-dom": "^19",
     "cross-env": "^7.0.3",
     "daisyui": "^5.0.18",
-    "eslint": "^9",
+    "eslint": "^9.24.0",
     "eslint-config-next": "15.2.5",
+    "eslint-plugin-unused-imports": "^4.1.4",
+    "prettier": "^3.5.3",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
