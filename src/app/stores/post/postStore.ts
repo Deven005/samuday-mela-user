@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 import {
   collection,
   onSnapshot,
@@ -11,12 +11,13 @@ import {
   Query,
   startAfter,
   Unsubscribe,
-} from "firebase/firestore";
-import { firestore } from "@/app/config/firebase.config";
-import { createJSONStorage, persist } from "zustand/middleware";
-import { useOtherUserStore } from "../user/otherUserStore";
-import { FirebaseError } from "firebase/app";
-import { clearUserData } from "@/app/utils/utils";
+  QueryDocumentSnapshot,
+  DocumentData,
+} from 'firebase/firestore';
+import { firestore } from '@/app/config/firebase.config';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import { useOtherUserStore } from '../user/otherUserStore';
+import { FirebaseError } from 'firebase/app';
 
 // Define the Post type based on your Firestore data structure
 export interface Post {
@@ -46,7 +47,7 @@ export interface Post {
 // Define the Zustand store
 interface PostStore {
   _hasHydrated?: boolean;
-  lastDoc: any | null;
+  lastDoc: QueryDocumentSnapshot<DocumentData, DocumentData> | null;
   posts: Post[] | null;
   listeners: Unsubscribe[];
   setHasHydrated: () => void;
@@ -72,7 +73,7 @@ export const usePostStore = create<PostStore>()(
       updatePost: (updatedPost) =>
         set((state) => ({
           posts: state.posts?.map((post) =>
-            post.postId === updatedPost.postId ? updatedPost : post
+            post.postId === updatedPost.postId ? updatedPost : post,
           ),
         })), // Action to update a post
       removePost: (postId) =>
@@ -82,19 +83,19 @@ export const usePostStore = create<PostStore>()(
       loadPosts: async () => {
         const { lastDoc, posts } = get();
 
-        var q: Query = !lastDoc
+        const q: Query = !lastDoc
           ? query(
-              collection(firestore, "posts"),
-              where("isVisible", "==", true),
-              orderBy("createdAt", "desc"),
-              limit(10)
+              collection(firestore, 'posts'),
+              where('isVisible', '==', true),
+              orderBy('createdAt', 'desc'),
+              limit(10),
             )
           : query(
-              collection(firestore, "posts"),
-              where("isVisible", "==", true),
-              orderBy("createdAt", "desc"),
+              collection(firestore, 'posts'),
+              where('isVisible', '==', true),
+              orderBy('createdAt', 'desc'),
               startAfter(lastDoc),
-              limit(10)
+              limit(10),
             );
 
         const snap = await getDocs(q);
@@ -109,7 +110,7 @@ export const usePostStore = create<PostStore>()(
                   ({
                     ...doc.data(),
                     postId: doc.id,
-                  } as Post)
+                  }) as Post,
               ),
             ],
           });
@@ -119,9 +120,9 @@ export const usePostStore = create<PostStore>()(
         const { listeners } = get();
         const unsubscribe = onSnapshot(
           query(
-            collection(firestore, "posts"),
-            where("isVisible", "==", true),
-            orderBy("createdAt", "desc")
+            collection(firestore, 'posts'),
+            where('isVisible', '==', true),
+            orderBy('createdAt', 'desc'),
           ), // Firestore collection name
           (snapshot) => {
             const currentPosts = get().posts ?? [];
@@ -134,48 +135,42 @@ export const usePostStore = create<PostStore>()(
               } as Post;
 
               switch (change.type) {
-                case "added":
+                case 'added':
                   // Add new post
-                  const exists = updatedPosts.some(
-                    (p) => p.postId === postData.postId
-                  );
+                  const exists = updatedPosts.some((p) => p.postId === postData.postId);
                   if (!exists) updatedPosts.push(postData);
                   break;
-                case "modified":
-                  var postChangeIndex = updatedPosts.findIndex(
-                    (p) => p.postId === postData.postId
+                case 'modified':
+                  const postChangeIndex = updatedPosts.findIndex(
+                    (p) => p.postId === postData.postId,
                   );
-                  if (postChangeIndex !== -1)
-                    updatedPosts[postChangeIndex] = postData;
+                  if (postChangeIndex !== -1) updatedPosts[postChangeIndex] = postData;
                   // Update existing post
                   break;
-                case "removed":
+                case 'removed':
                   //  Remove post
-                  var postRemoveIndex = updatedPosts.findIndex(
-                    (p) => p.postId === postData.postId
+                  const postRemoveIndex = updatedPosts.findIndex(
+                    (p) => p.postId === postData.postId,
                   );
-                  if (postRemoveIndex !== -1)
-                    updatedPosts.splice(postRemoveIndex, 1);
+                  if (postRemoveIndex !== -1) updatedPosts.splice(postRemoveIndex, 1);
                   break;
                 default:
                   break;
               }
             });
-            set({ posts: updatedPosts, _hasHydrated: true });
+            set({ posts: updatedPosts });
             useOtherUserStore
               .getState()
-              .fetchOtherUserData?.([
-                ...new Set(updatedPosts.map((p) => p.userId)),
-              ]);
+              .fetchOtherUserData?.([...new Set(updatedPosts.map((p) => p.userId))]);
           },
           (error: FirebaseError) => {
-            console.error("Error fetching posts: ", error);
+            console.error('Error fetching posts: ', error);
             throw error;
-          }
+          },
         );
 
         // Return the unsubscribe function to stop listening when needed
-        set((state) => ({
+        set(() => ({
           listeners: [...listeners, unsubscribe],
         }));
 
@@ -186,19 +181,19 @@ export const usePostStore = create<PostStore>()(
         try {
           set((state) => {
             state.listeners.forEach((unsubscribe) => unsubscribe());
-            return { posts: null, _hasHydrated: true, listeners: [] };
+            return {};
           });
         } catch (error) {
-          console.log("err: ", error);
+          console.log('err: ', error);
         }
       },
     }),
     {
-      name: "posts-storage", // The key used to store the data in localStorage
+      name: 'posts-storage', // The key used to store the data in localStorage
       storage: createJSONStorage(() => localStorage),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated();
       },
-    }
-  )
+    },
+  ),
 );

@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import InputField from "@/app/components/Input/InputField";
-import TextAreaField from "@/app/components/Input/TextAreaField";
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import InputField from '@/app/components/Input/InputField';
+import TextAreaField from '@/app/components/Input/TextAreaField';
 
 const AddPostPage = () => {
   const router = useRouter();
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
 
@@ -22,32 +22,35 @@ const AddPostPage = () => {
 
   const handleTags = (value: string) => {
     const list = value
-      .split(",")
+      .split(',')
       .map((tag) => tag.trim())
       .filter((tag) => tag);
     setTags(list);
   };
 
+  const removeFile = (index: number) => {
+    setMediaFiles((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Upload to Firestore/Storage
     console.log({
       title,
       description,
       tags,
       mediaFiles,
     });
-    router.push("/posts");
+    router.push('/posts');
   };
 
   return (
-    <div className="min-h-screen bg-base-200 py-8 px-4 md:px-8">
-      <div className="max-w-3xl mx-auto bg-base-100 shadow-lg rounded-lg p-6 md:p-8">
-        <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center">
-          Add New Post
+    <div className="min-h-screen bg-base-200 py-10 px-4 md:px-8">
+      <div className="max-w-3xl mx-auto bg-base-100 border border-base-300 shadow-xl rounded-xl p-6 md:p-10 transition-all duration-300 hover:shadow-2xl">
+        <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center text-primary">
+          ✨ Add New Post
         </h1>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Title */}
           <InputField
             type="text"
@@ -70,21 +73,22 @@ const AddPostPage = () => {
           />
 
           {/* Tags */}
+          {/* Tags */}
           <InputField
-            label=" Tags (comma-separated)"
             type="text"
+            label=" Tags (comma-separated)"
             placeholder="e.g. coding, photography"
+            id="post_tag"
+            value={tags.join(',')}
             onChange={(e) => handleTags(e.target.value)}
-            id={"post_tag"}
-            value={tags.join(",")}
+            required
+            // className="input input-bordered w-full"
           />
 
           {/* Media Upload */}
-          <div>
+          <div className="transition duration-200 hover:scale-105 text-base-content">
             <label className="label">
-              <span className="label-text font-semibold">
-                Upload Images / Videos
-              </span>
+              <span className="label-text font-semibold">Upload Images / Videos</span>
             </label>
             <input
               type="file"
@@ -96,8 +100,19 @@ const AddPostPage = () => {
             {mediaFiles.length > 0 && (
               <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
                 {mediaFiles.map((file, idx) => (
-                  <div key={idx} className="rounded overflow-hidden">
-                    {file.type.startsWith("image/") ? (
+                  <div
+                    key={idx}
+                    className="relative group rounded overflow-hidden border border-base-300 shadow hover:shadow-md transition"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => removeFile(idx)}
+                      className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition"
+                      title="Remove"
+                    >
+                      ✕
+                    </button>
+                    {file.type.startsWith('image/') ? (
                       <img
                         src={URL.createObjectURL(file)}
                         alt={`preview-${idx}`}
@@ -118,8 +133,11 @@ const AddPostPage = () => {
 
           {/* Submit Button */}
           <div className="pt-4">
-            <button type="submit" className="btn btn-primary w-full">
-              Publish Post
+            <button
+              type="submit"
+              className="btn btn-primary w-full text-lg tracking-wide shadow-md hover:shadow-lg transition"
+            >
+              🚀 Publish Post
             </button>
           </div>
         </form>
