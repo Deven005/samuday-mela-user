@@ -1,7 +1,6 @@
-// app/components/Footer.tsx
-import Link from "next/link";
-import { DocumentData } from "firebase-admin/firestore";
-import FooterClient from "./FooterClient";
+import Link from 'next/link';
+import { DocumentData } from 'firebase-admin/firestore';
+import FooterClient from './FooterClient';
 
 interface FooterPropType {
   appData: DocumentData | undefined;
@@ -11,125 +10,108 @@ interface FooterPropType {
 const Footer = ({ appData, user }: FooterPropType) => {
   return (
     <>
-      <FooterClient userId={user?.uid} />
-      <footer className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-10 mt-auto shadow-lg">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          {/* 🔥 Community Overview */}
-          <div className="text-center md:text-left">
-            <h3 className="text-2xl font-bold tracking-wide">
-              {user
-                ? `👋 Hey, ${user?.displayName}!`
-                : `🚀 Welcome to ${appData?.appName}`}
+      <FooterClient />
+
+      <footer className="bg-base-200 text-base-content py-12 mt-auto border-t border-base-300 transition-colors duration-300">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-start justify-between gap-12">
+          {/* 🔥 Welcome / App Info */}
+          <div className="text-center md:text-left max-w-md">
+            <h3 className="text-3xl font-extrabold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-500 text-transparent bg-clip-text">
+              {user ? '👋 Hey there!' : `🚀 Welcome to ${appData?.appName}`}
             </h3>
-            <p className="mt-2 text-sm text-gray-200">
-              {appData?.description ||
-                "Join the movement to connect, compete, and grow in exciting challenges."}
+            <p className="mt-3 text-sm text-base-content/70">
+              {appData?.description || 'Join challenges, meet creators, and spark your creativity.'}
             </p>
-            {user ? (
-              <Link
-                href="/dashboard"
-                className="btn btn-glass mt-4 px-6 py-2 text-sm rounded-full"
-              >
-                Go to Dashboard 🚀
-              </Link>
-            ) : (
-              <Link
-                href="/join"
-                className="btn btn-glass mt-4 px-6 py-2 text-sm rounded-full"
-              >
-                Join Now 🚀
-              </Link>
-            )}
+            <Link
+              href={user ? '/' : '/join'}
+              className="btn mt-4 px-6 py-2 text-sm rounded-full shadow-md hover:scale-105 transition-transform bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white border-none"
+            >
+              {user ? 'Go to Dashboard' : 'Join Now 🚀'}
+            </Link>
           </div>
 
-          {/* 📢 Quick Links */}
-          <div className="flex flex-col items-center md:items-start space-y-3">
-            <h3 className="text-lg font-semibold">🌍 Explore</h3>
+          {/* 🌍 Explore */}
+          <div className="text-center md:text-left">
+            <h4 className="text-lg font-semibold mb-3">Explore 🌐</h4>
             <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="/about" className="hover:text-white">
-                  About Us
-                </Link>
-              </li>
-              <li>
-                <Link href="/events" className="hover:text-white">
-                  Competitions
-                </Link>
-              </li>
-              <li>
-                <Link href="/networking" className="hover:text-white">
-                  Networking Hub
-                </Link>
-              </li>
-              <li>
-                <Link href="/resources" className="hover:text-white">
-                  Learning Resources
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="hover:text-white">
-                  Contact Us
-                </Link>
-              </li>
+              {['about', 'events', 'networking', 'resources', 'contact', 'faq'].map((page) => (
+                <li key={page}>
+                  <Link
+                    href={`/${page}`}
+                    className="hover:text-primary hover:underline transition duration-150"
+                  >
+                    {page.charAt(0).toUpperCase() + page.slice(1).replace('-', ' ')}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
-          {/* 🎉 Social Media & Updates */}
+          {/* 📲 Social & Updates */}
           <div className="text-center md:text-left">
-            <h3 className="text-lg font-semibold">📢 Stay Connected</h3>
-            {user ? (
-              <>
-                <p className="text-sm text-gray-200">
-                  Check out your latest updates & competitions.
-                </p>
-                <Link
-                  href="/notifications"
-                  className="btn btn-outline btn-sm mt-3"
-                >
-                  View Updates
-                </Link>
-              </>
-            ) : (
-              <p className="text-sm text-gray-200">
-                Follow us for daily inspiration & updates!
-              </p>
+            <h4 className="text-lg font-semibold mb-2">📢 Stay Connected</h4>
+            <p className="text-sm text-base-content/70">
+              {user
+                ? 'Check your latest updates and competitions.'
+                : 'Follow us for daily inspo & updates!'}
+            </p>
+            {user && (
+              <Link
+                href="/notifications"
+                className="btn btn-outline btn-sm mt-3 rounded-full hover:scale-105"
+              >
+                View Updates
+              </Link>
             )}
-
-            {/* Social Media Icons */}
+            {/* Social buttons using unique emojis */}
             <div className="flex gap-4 mt-3">
-              <Link
-                href="https://instagram.com"
-                className="btn btn-sm btn-circle btn-glass"
-              >
-                IG
-              </Link>
-              <Link
-                href="https://linkedin.com"
-                className="btn btn-sm btn-circle btn-glass"
-              >
-                LN
-              </Link>
-              <Link
-                href="https://tiktok.com"
-                className="btn btn-sm btn-circle btn-glass"
-              >
-                TT
-              </Link>
-              <Link
-                href="https://twitter.com"
-                className="btn btn-sm btn-circle btn-glass"
-              >
-                X
-              </Link>
+              {[
+                {
+                  name: 'Instagram',
+                  link: 'https://instagram.com',
+                  label: 'IG',
+                  className:
+                    'mask mask-circle w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center',
+                },
+                {
+                  name: 'LinkedIn',
+                  link: 'https://linkedin.com',
+                  label: 'LN',
+                  className:
+                    'mask mask-squircle w-10 h-10 bg-gradient-to-br from-sky-500 to-blue-700 flex items-center justify-center',
+                },
+                // {
+                //   name: 'TikTok',
+                //   link: 'https://tiktok.com',
+                //   label: 'TT',
+                //   className:
+                //     'mask mask-hexagon w-10 h-10 bg-black flex items-center justify-center',
+                // },
+                {
+                  name: 'Twitter',
+                  link: 'https://twitter.com',
+                  label: 'X',
+                  className:
+                    'mask mask-star w-10 h-10 bg-gradient-to-br from-gray-700 to-black flex items-center justify-center',
+                },
+              ].map((s) => (
+                <Link
+                  key={s.name}
+                  href={s.link}
+                  className={`text-white ${s.className}`}
+                  aria-label={s.name}
+                >
+                  {s.label}
+                </Link>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* ⚡ Footer Bottom */}
-        <div className="border-t border-gray-500 mt-6 pt-4 text-center text-sm text-gray-300">
-          &copy; {new Date().getFullYear()}{" "}
-          <strong>{appData?.appName || "YourCommunity"}</strong>. All rights
-          reserved.
+        {/* 📄 Footer Bottom */}
+        <div className="mt-10 pt-4 text-center text-sm text-base-content/60 border-t border-base-300">
+          &copy; {new Date().getFullYear()} <strong>{appData?.appName || 'YourCommunity'}</strong>.
+          All rights reserved 💖
         </div>
       </footer>
     </>

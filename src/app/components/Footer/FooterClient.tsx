@@ -1,14 +1,9 @@
-"use client";
-import useFCM from "@/app/hooks/useFCM";
+'use client';
+import useFCM from '@/app/hooks/useFCM';
+import { useEffect } from 'react';
 
-interface FooterClientPropType {
-  userId: string | null | undefined;
-}
-
-const FooterClient = ({ userId }: FooterClientPropType) => {
-  if (userId) {
-    useFCM(userId);
-  }
+const FooterClient = () => {
+  useFCM();
 
   return <></>;
 };
