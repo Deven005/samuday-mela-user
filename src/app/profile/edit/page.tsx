@@ -1,32 +1,31 @@
-"use client";
-
-import { useUserStore } from "@/app/stores/user/userStore";
-import { Timestamp } from "firebase/firestore";
-import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
-import { useShallow } from "zustand/shallow";
-import Image from "next/image";
-import { sendNotification } from "@/app/utils/getFCMToken";
+'use client';
+import { useUserStore } from '@/app/stores/user/userStore';
+import { Timestamp } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
+import InputField from '@/app/components/Input/InputField';
+import TextAreaField from '@/app/components/Input/TextAreaField';
 
 const EditProfile = () => {
-  const user = useUserStore(useShallow((state) => state.user));
-  const updateUser = useUserStore((state) => state.updateUser);
+  // const user = useUserStore(useShallow((state) => state.user));
+  const { user, updateUser } = useUserStore((state) => state);
   const router = useRouter();
 
   const [editedUser, setEditedUser] = useState({
-    uid: user?.uid || "",
-    photoURL: user?.photoURL || "",
-    displayName: user?.displayName || "",
-    email: user?.email || "",
-    phoneNumber: user?.phoneNumber || "",
-    address: user?.address || "",
-    hobbies: user?.hobbies.join(", ") || "",
-    story: user?.story || "",
-    currentOccupation: user?.currentOccupation || "",
-    vibe: user?.vibe || "",
+    uid: user?.uid || '',
+    photoURL: user?.photoURL || '',
+    displayName: user?.displayName || '',
+    email: user?.email || '',
+    phoneNumber: user?.phoneNumber || '',
+    address: user?.address || '',
+    hobbies: user?.hobbies.join(', ') || '',
+    story: user?.story || '',
+    currentOccupation: user?.currentOccupation || '',
+    vibe: user?.vibe || '',
     emailVerified: user?.emailVerified ?? false,
     occupationHistory: user?.occupationHistory || {
-      occupation: "",
+      occupation: '',
       occupationUpdatedAt: Timestamp.now(),
     },
     providerData: user?.providerData || [],
@@ -39,18 +38,18 @@ const EditProfile = () => {
       setEditedUser({
         ...editedUser,
         uid: user.uid,
-        displayName: user.displayName || "",
-        photoURL: user.photoURL || "",
-        email: user.email || "",
-        phoneNumber: user.phoneNumber || "",
-        address: user.address || "",
-        hobbies: user.hobbies.join(", ") || "",
-        story: user.story || "",
-        currentOccupation: user.currentOccupation || "",
-        vibe: user.vibe || "",
+        displayName: user.displayName || '',
+        photoURL: user.photoURL || '',
+        email: user.email || '',
+        phoneNumber: user.phoneNumber || '',
+        address: user.address || '',
+        hobbies: user.hobbies.join(', ') || '',
+        story: user.story || '',
+        currentOccupation: user.currentOccupation || '',
+        vibe: user.vibe || '',
         emailVerified: user.emailVerified ?? false,
         occupationHistory: user.occupationHistory || {
-          occupation: "",
+          occupation: '',
           occupationUpdatedAt: Timestamp.now(),
         },
         providerData: user.providerData || [],
@@ -61,34 +60,41 @@ const EditProfile = () => {
   }, [user]);
 
   const handleSave = async () => {
-    await updateUser({
+    const updatedUser = {
       ...user,
       ...editedUser,
-      hobbies: editedUser.hobbies.split(",").map((h) => h.trim()),
+      hobbies: editedUser.hobbies
+        .split(',')
+        .map((h) => h.trim())
+        .filter(Boolean),
       updatedAt: Timestamp.now(),
-    });
-    user?.uid &&
-      (await sendNotification({
-        topic: user?.uid,
-        title: "Profile is updated!",
-        body: "Profile is updated successfully!",
-      }));
+    };
+
+    if (!isEqualExceptUpdatedAt(user, updatedUser)) {
+      await updateUser(updatedUser);
+    }
     router.back();
     router.refresh();
   };
 
-  const handleCancel = () => router.replace("/profile");
+  // Function to deeply compare 2 objects (excluding updatedAt)
+  function isEqualExceptUpdatedAt(a: any, b: any): boolean {
+    const { updatedAt: _, ...aWithoutUpdatedAt } = a;
+    const { updatedAt: __, ...bWithoutUpdatedAt } = b;
+    return JSON.stringify(aWithoutUpdatedAt) === JSON.stringify(bWithoutUpdatedAt);
+  }
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setEditedUser((prev) => ({ ...prev, [name]: value }));
+  const handleCancel = () => router.replace('/profile');
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+
+    setEditedUser((prev) => ({ ...prev, [id]: value }));
   };
 
   return (
     <div className="bg-base-100 min-h-screen flex justify-center items-center p-6">
-      <div className="card w-full max-w-lg md:max-w-xl lg:max-w-2xl bg-white shadow-xl p-8 rounded-lg">
+      <div className="card w-full max-w-lg md:max-w-xl lg:max-w-2xl shadow-xl p-8 rounded-lg">
         {/* Profile Image Section */}
         <div className="flex flex-col items-center">
           <div className="relative w-28 h-28">
@@ -96,7 +102,7 @@ const EditProfile = () => {
               src={
                 editedUser.photoURL ||
                 `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                  editedUser.displayName || "User"
+                  editedUser.displayName || 'User',
                 )}&rounded=true&background=0D8ABC&color=fff`
               }
               alt="Profile"
@@ -106,102 +112,88 @@ const EditProfile = () => {
             />
           </div>
           {/* <h2 className="text-2xl font-bold mt-4">{editedUser.displayName}</h2> */}
-          <p className="text-gray-600 text-2xl font-bold mt-4">
-            {editedUser.email}
-          </p>
+          <p className="text-base-content text-2xl font-bold mt-4">{editedUser.email}</p>
         </div>
 
         {/* Profile Edit Form */}
-        <div className="mt-6 grid grid-cols-1 gap-4">
-          <label className="label">
-            <span className="label-text">Display Name</span>
-            <input
-              name="displayName"
-              value={editedUser.displayName}
-              onChange={handleChange}
-              className="input input-bordered w-full"
-              placeholder="Your Name"
-            />
-          </label>
+        <div className="mt-3 grid grid-cols-1 gap-1">
+          <InputField
+            label="Display Name"
+            id="displayName"
+            value={editedUser.displayName}
+            onChange={handleChange}
+            type="text"
+            // className="input input-bordered w-full"
+            placeholder="Your Name"
+          />
 
-          <label className="label">
-            <span className="label-text">Phone Number</span>
-            <input
-              name="phoneNumber"
-              value={editedUser.phoneNumber}
-              onChange={handleChange}
-              className="input input-bordered w-full"
-              placeholder="Phone"
-            />
-          </label>
+          <InputField
+            id="phoneNumber"
+            value={editedUser.phoneNumber}
+            onChange={handleChange}
+            label="Phone Number"
+            required
+            // className="input input-bordered w-full"
+            placeholder="Phone"
+          />
 
-          <label className="label">
-            <span className="label-text">Address</span>
-            <input
-              name="address"
-              value={editedUser.address}
-              onChange={handleChange}
-              className="input input-bordered w-full"
-              placeholder="Address"
-            />
-          </label>
+          <TextAreaField
+            id="address"
+            label="Address"
+            value={editedUser.address}
+            onChange={handleChange}
+            // className="input input-bordered w-full"
+            placeholder="Address"
+          />
 
-          <label className="label">
-            <span className="label-text">Hobbies</span>
-            <input
-              name="hobbies"
-              value={editedUser.hobbies}
-              onChange={handleChange}
-              className="input input-bordered w-full"
-              placeholder="Hobbies (comma-separated)"
-            />
-          </label>
+          <InputField
+            id="hobbies"
+            label="Hobbies"
+            value={editedUser.hobbies}
+            onChange={handleChange}
+            // className="input input-bordered w-full"
+            placeholder="Hobbies (comma-separated)"
+          />
 
-          <label className="label">
-            <span className="label-text">Your Story</span>
-            <textarea
-              name="story"
-              value={editedUser.story}
-              onChange={handleChange}
-              className="textarea textarea-bordered w-full"
-              placeholder="Share your journey"
-            />
-          </label>
+          <TextAreaField
+            id="story"
+            label="Story"
+            value={editedUser.story}
+            onChange={handleChange}
+            // className="textarea textarea-bordered w-full"
+            placeholder="Share your journey"
+          />
 
-          <label className="label">
-            <span className="label-text">Occupation</span>
-            <input
-              name="currentOccupation"
-              value={editedUser.currentOccupation}
-              onChange={handleChange}
-              className="input input-bordered w-full"
-              placeholder="Occupation"
-            />
-          </label>
+          <InputField
+            id="currentOccupation"
+            label="Current Occupation"
+            value={editedUser.currentOccupation}
+            onChange={handleChange}
+            // className="input input-bordered w-full"
+            placeholder="Occupation"
+          />
 
-          <label className="label">
-            <span className="label-text">Vibe</span>
-            <input
-              name="vibe"
-              value={editedUser.vibe}
-              onChange={handleChange}
-              className="input input-bordered w-full"
-              placeholder="Your vibe"
-            />
-          </label>
+          <InputField
+            id="vibe"
+            label="Vibe"
+            value={editedUser.vibe}
+            onChange={handleChange}
+            // className="input input-bordered w-full"
+            placeholder="Your vibe"
+          />
         </div>
 
         {/* Action Buttons */}
         <div className="flex justify-between mt-6">
           <button
             onClick={handleSave}
-            className="btn btn-primary btn-lg w-1/2 rounded-md shadow-md hover:shadow-lg"
+            className="btn btn-primary btn-lg w-1/2 rounded-md shadow-md hover:shadow-2xl"
           >
             Save
           </button>
           <button
             onClick={handleCancel}
-            className="btn btn-outline btn-lg w-1/2 rounded-md hover:bg-gray-200 ml-4"
+            className="btn btn-outline btn-lg w-1/2 rounded-md hover:bg-gray-200 ml-4 text-base-content hover:text-black"
           >
             Cancel
           </button>
