@@ -1,33 +1,52 @@
 // app/api/verify-session/route.ts
-import { serverAuth } from "@/app/config/firebase.server.config";
-import { cookies } from "next/headers";
-import { NextRequest, NextResponse } from "next/server";
+import { serverAuth, serverFirestore } from '@/app/config/firebase.server.config';
+import { clearUserData } from '@/app/utils/utils';
+import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const sessionCookie = req.headers.get('session') as string;
+    const idToken = req.headers.get('Authorization')?.replace('Bearer ', '');
 
-    const { sessionCookie } = body;
-    // const sessionCookie = (await cookies()).getAll()?.values();
+    // console.log('verify-session headers: ', req.headers);
 
-    if (!sessionCookie)
-      return NextResponse.json({
-        error: "No session provided",
-        status: 400,
-        valid: false,
-      });
+    if (!sessionCookie && !idToken)
+      return NextResponse.json(
+        {
+          error: 'No session or token provided',
+          valid: false,
+        },
+        {
+          status: 400,
+        },
+      );
 
-    // await serverAuth.verifyIdToken(idToken, true);
-    const decodedToken = await serverAuth.verifySessionCookie(
-      sessionCookie,
-      true
-    );
+    const decodedToken = await serverAuth.verifySessionCookie(sessionCookie, true);
 
-    return NextResponse.json({ valid: true, uid: decodedToken.uid });
+    if (idToken) {
+      const verifiedUser = await serverAuth.verifyIdToken(idToken, true);
+
+      if (verifiedUser.uid !== decodedToken.uid) {
+        // return NextResponse.json({ error: 'Not valid user', valid: false }, { status: 401 });
+        console.log('Not valid user by uid');
+        await clearUserData();
+
+        const res = NextResponse.json(
+          { error: { message: 'Not valid user by uid' }, valid: false },
+          { status: 401 },
+        );
+        res.cookies.delete('session');
+        return res;
+      }
+    }
+
+    return NextResponse.json({ valid: true, uid: decodedToken.uid }, { status: 200 });
   } catch (error) {
-    console.error("Session verification failed:", error);
+    await clearUserData();
+    console.error('Session verification failed:', error);
     return NextResponse.json({ error: error, valid: false }, { status: 401 });
+    // throw error;
   }
 }

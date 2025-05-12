@@ -1,70 +1,105 @@
 // middleware.ts
-import { NextResponse, NextRequest } from "next/server";
+import { NextResponse, NextRequest } from 'next/server';
 
 export const config = {
   matcher: [
-    "/((?!sign-in|sign-up|_next/static|_next/image|api|favicon.ico).*)",
+    '/((?!sign-in|sign-up|_next/static|_next/image|api|favicon.ico|firebase-messaging-sw.js).*)',
   ],
 };
+const PUBLIC_PATHS = [
+  '/sign-in',
+  '/sign-up',
+  '/firebase-messaging-sw.js',
+  '/about',
+  '/contact',
+  '/faq',
+];
+const ROOT_PATH = '/';
 
 export async function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
-  console.log("pathname: ", pathname);
+  const { pathname, origin } = request.nextUrl;
+  console.log('pathname: ', pathname);
 
-  // ✅ Skip protection for "/", "/sign-in", "/sign-up"
-  if (
-    pathname === "/" ||
-    pathname.startsWith("/sign-in") ||
-    pathname.startsWith("/sign-up")
-  ) {
+  // 🔓 Skip check for public paths
+  if (PUBLIC_PATHS.includes(pathname)) {
     return NextResponse.next();
   }
 
+  const sessionCookie = request.cookies.get('session')?.value || '';
+  const appCheckToken = request.headers.get('X-Firebase-AppCheck') || '';
+
   // try {
   //   const res = await fetch(
-  //     `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/verify-appCheck-token`,
+  //     `${origin}/api/auth/verify-appCheck-token`,
   //     {
   //       method: "POST",
   //       headers: request.headers,
   //     }
   //   );
 
-  //   if (!res.ok || !(await res.json()).valid) {
-  //     console.log("🚨 Invalid token, redirecting to /blocked.");
-  //     return NextResponse.redirect(new URL("/blocked", request.url));
-  //   }
+  // if (!appCheckRes.ok) {
+  //   // 🔒 Invalid app check token, redirect to /block
+  //   return NextResponse.redirect(new URL('/block', request.url));
+  // }
   // } catch (error) {
   //   console.error("❌ Error verifying token:", error);
   //   return NextResponse.redirect(new URL("/blocked", request.url));
   // }
 
-  const sessionCookie = request.cookies.get("session")?.value;
-  const idToken = request.headers.get("Authorization")?.replace("Bearer ", "");
-
-  if (!sessionCookie && !idToken) {
-    console.log("⚠ No session or ID token found, redirecting to /sign-in.");
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/verify-session`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionCookie, idToken }),
-      }
-    );
+    let userId = null;
+    // 🔐 Verify session cookie via secure API call
+    const sessionVerifyRes = await fetch(`${origin}/api/verify-session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: request.headers.get('Authorization')?.replace('Bearer ', '') ?? '',
+        session: sessionCookie,
+      },
+    });
     // verify-appCheck-token
 
-    if (!res.ok) {
-      console.log("🚨 Invalid session or token, redirecting to /.");
-      return NextResponse.redirect(new URL("/", request.url));
+    const resJson = await sessionVerifyRes.json();
+    if (resJson.valid) {
+      userId = resJson.uid;
+    } else if (!resJson.valid && resJson.error.code === 'auth/session-cookie-expired') {
+      const sessionRenewVerifyRes = await fetch(`${origin}/api/renew-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: request.headers.get('Authorization')?.replace('Bearer ', '') ?? '',
+          session: sessionCookie,
+        },
+      });
+      console.log('sessionRenewVerifyRes: ', sessionRenewVerifyRes);
+      console.log('sessionRenewVerifyRes: ', await sessionRenewVerifyRes.json());
+    }
+
+    console.log('resJson: ', resJson);
+    console.log('sessionVerifyRes.ok: ', sessionVerifyRes.ok);
+
+    if (!sessionVerifyRes.ok) {
+      // ✅ If path is '/', allow access but clean session if invalid
+      if (pathname === ROOT_PATH) {
+        if (!userId && sessionCookie) {
+          // Clear session cookie if it exists but is invalid
+          const res = NextResponse.next();
+          res.cookies.delete('session');
+          return res;
+        }
+
+        return NextResponse.next(); // show homepage (login or dashboard)
+      }
+
+      // 🔒 All other protected paths
+      if (!userId) {
+        return NextResponse.redirect(new URL('/', request.url));
+      }
     }
 
     return NextResponse.next();
   } catch (error) {
-    console.error("❌ Error verifying session:", error);
-    return NextResponse.redirect(new URL("/", request.url));
+    console.warn('❌ Error verifying session:', error);
+    return NextResponse.redirect(new URL('/', request.url));
   }
 }

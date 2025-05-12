@@ -1,61 +1,38 @@
 // app/api/create-session/route.ts
-import {
-  serverAuth,
-  serverMessaging,
-} from "@/app/config/firebase.server.config";
-import { NextRequest, NextResponse } from "next/server";
+import { serverAuth } from '@/app/config/firebase.server.config';
+import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = "nodejs"; // Ensure this runs in Node.js
+export const runtime = 'nodejs'; // Ensure this runs in Node.js
 
 export async function POST(req: NextRequest) {
   try {
-    const { idToken, token } = await req.json();
-    if (!idToken || !token) {
-      return NextResponse.json(
-        { error: "No id token or token provided" },
-        { status: 400 }
-      );
+    const idToken = req.headers.get('Authorization')?.replace('Bearer ', '');
+    
+    console.log('/create-session req.headers: ', req.headers);
+    console.log('/create-session idToken: ', idToken);
+
+    if (!idToken) {
+      // return NextResponse.json({ error: 'Not valid id token provided' }, { status: 400 });
+      throw new Error('Not valid id token provided');
     }
 
     // Validate ID token
-    const verifiedToken = await serverAuth.verifyIdToken(idToken);
+    const verifiedToken = await serverAuth.verifyIdToken(idToken, true);
+
+    // Only process if the user just signed in in the last 5 minutes.
+    if (new Date().getTime() / 1000 - verifiedToken.auth_time >= 5 * 60)
+      throw Error('Recent sign in required!');
 
     // Create a session cookie (valid for 7 days)
     const expiresIn = 1000 * 60 * 60 * 24 * 7; // 7 days
     const sessionCookie = await serverAuth.createSessionCookie(idToken, {
       expiresIn,
     });
-    const mess = await serverMessaging.subscribeToTopic(
-      token,
-      verifiedToken.uid
-    );
-    if (mess.errors.length > 0) {
-      throw new Error(`err for fcm with count: ${mess.failureCount}`);
-    }
 
-    await serverMessaging.send({
-      topic: verifiedToken.uid,
-      fcmOptions: { analyticsLabel: "tmp" },
-      android: {
-        notification: {
-          title: "notification title",
-          body: "notification body",
-          imageUrl: "https://picsum.photos/200/300",
-          icon: "https://firebasestorage.googleapis.com/v0/b/samudaymela.appspot.com/o/public%2FAppLogo.png?alt=media&token=c2d303b5-c27f-4bde-a8c4-5bb434c30237",
-        },
-      },
-      webpush: {
-        data: {
-          title: "notification title",
-          body: "notification body",
-          imageUrl: "https://picsum.photos/200/300",
-          logo: "https://firebasestorage.googleapis.com/v0/b/samudaymela.appspot.com/o/public%2FAppLogo.png?alt=media&token=c2d303b5-c27f-4bde-a8c4-5bb434c30237",
-        },
-      },
-    });
+    console.log('/create-session verifiedToken.uid: ', verifiedToken.uid);
 
-    const response = NextResponse.json({ message: "Session created" });
-    response.cookies.set("session", sessionCookie, {
+    const response = NextResponse.json({ message: 'Session created' }, { status: 200 });
+    response.cookies.set('session', sessionCookie, {
       httpOnly: true,
       secure: true,
       maxAge: expiresIn,
@@ -63,10 +40,7 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error("Failed to create session:", error);
-    return NextResponse.json(
-      { error: "Session creation failed" },
-      { status: 401 }
-    );
+    console.error('Failed to create session:', error);
+    return NextResponse.json({ error: error }, { status: 401 });
   }
 }

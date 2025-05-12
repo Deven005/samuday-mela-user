@@ -1,26 +1,39 @@
-import { serverAuth } from "@/app/config/firebase.server.config";
-import { NextRequest, NextResponse } from "next/server";
+import { serverAuth } from '@/app/config/firebase.server.config';
+import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
-    const { sessionCookie, idToken } = await req.json();
+    const sessionCookie = req.headers.get('session') as string;
+    const idToken = req.headers.get('Authorization')?.replace('Bearer ', '') ?? '';
+    // const { sessionCookie, idToken } = await req.json();
+    console.log('renew-session body: ', await req.json());
 
-    let decodedToken;
+    console.log('renew-session body: ', sessionCookie);
+    console.log('renew-session body: ', idToken);
 
     // 1️⃣ First, check session cookie if it's still valid
     if (sessionCookie) {
-      decodedToken = await serverAuth.verifySessionCookie(sessionCookie, true);
+      try {
+        await serverAuth.verifySessionCookie(sessionCookie, true);
+      } catch (error: any) {
+        if (error.code === 'auth/session-cookie-expired') {
+          const sessionDeleteRes = await fetch(`${origin}/api/delete-session`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: req.headers.get('Authorization')?.replace('Bearer ', '') ?? '',
+            },
+          });
+        }
+      }
     }
     // 2️⃣ If session expired, require fresh ID token
     else if (idToken) {
-      decodedToken = await serverAuth.verifyIdToken(idToken);
+      await serverAuth.verifyIdToken(idToken, true);
     } else {
-      return NextResponse.json(
-        { error: "No session or ID token provided" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'No session or ID token provided' }, { status: 401 });
     }
 
     // Generate a new session cookie if needed
@@ -29,19 +42,15 @@ export async function POST(req: NextRequest) {
       expiresIn,
     });
 
-    const response = NextResponse.json({ message: "Session refreshed" });
-    response.cookies.set("session", newSessionCookie, {
+    const response = NextResponse.json({ message: 'Session refreshed' });
+    response.cookies.set('session', newSessionCookie, {
       httpOnly: true,
       secure: true,
       maxAge: expiresIn,
     });
-
     return response;
   } catch (error) {
-    console.error("Session renewal failed:", error);
-    return NextResponse.json(
-      { error: "Session renewal failed" },
-      { status: 401 }
-    );
+    console.error('Session renewal failed:', error);
+    return NextResponse.json({ error: 'Session renewal failed' }, { status: 401 });
   }
 }

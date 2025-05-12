@@ -1,8 +1,5 @@
 // app/api/auth/verify-appCheck-token/route.ts
-import {
-  serverAppCheck,
-  serverAuth,
-} from "@/app/config/firebase.server.config";
+import { serverAppCheck } from "@/app/config/firebase.server.config";
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
