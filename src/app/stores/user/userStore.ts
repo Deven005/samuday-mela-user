@@ -1,5 +1,5 @@
-import { create } from "zustand";
-import { createJSONStorage, devtools, persist } from "zustand/middleware";
+import { create } from 'zustand';
+import { createJSONStorage, devtools, persist } from 'zustand/middleware';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -8,25 +8,17 @@ import {
   updateProfile,
   signOut,
   onAuthStateChanged,
-} from "firebase/auth";
-import {
-  appCheck,
-  auth,
-  firestore,
-  messaging,
-} from "../../config/firebase.config";
-import {
-  doc,
-  getDoc,
-  onSnapshot,
-  setDoc,
-  Timestamp,
-  updateDoc,
-} from "firebase/firestore";
-import { uploadProfileImage } from "../../utils/uploadFiles";
-import { resetAllStores } from "../../utils/resetAllStores";
-import { fetchWithAppCheck } from "@/app/utils/generateAppCheckToken";
-import { getFCMToken } from "@/app/utils/getFCMToken";
+  User,
+} from 'firebase/auth';
+import { analytics, auth, firestore, performance } from '../../config/firebase.config';
+import { doc, getDoc, onSnapshot, setDoc, Timestamp, updateDoc } from 'firebase/firestore';
+import { uploadProfileImage } from '../../utils/uploadFiles';
+import { resetAllStores } from '../../utils/resetAllStores';
+import { fetchWithAppCheck } from '@/app/utils/generateAppCheckToken';
+import { getFCMToken, sendNotification } from '@/app/utils/getFCMToken';
+import { getIpAddress } from '@/app/utils/utils-client';
+import { trace } from 'firebase/performance';
+import { logEvent } from 'firebase/analytics';
 
 // Define the types for User data and store
 export interface CurrentUser {
@@ -45,7 +37,7 @@ export interface CurrentUser {
   vibe: string;
   uid: string;
   photoURL: string | null;
-  providerData: any[];
+  providerData: [];
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -71,23 +63,23 @@ export interface UserState {
   setUser: (user: CurrentUser) => void;
   setFcmToken: (fcmToken: string) => void;
   updateUser: (user: CurrentUser) => Promise<void>;
-  updateUserProfilePic: (
-    user: CurrentUser,
-    profileImageFile: File
-  ) => Promise<void>;
+  updateUserProfilePic: (user: CurrentUser, profileImageFile: File) => Promise<void>;
   clearUser: () => void;
   signUp: (
     email: string,
     password: string,
-    userData: Omit<UserSignUpDataType, "uid">,
-    onSuccess?: () => void
+    userData: Omit<UserSignUpDataType, 'uid'>,
+    onSuccess?: () => void,
   ) => Promise<void>;
-  signIn: (
-    email: string,
-    password: string,
-    onSuccess?: () => void
-  ) => Promise<void>;
+  signIn: (email: string, password: string, onSuccess?: () => void) => Promise<void>;
   signInWithGoogle: (onSuccess?: () => void) => Promise<void>;
+  signUpWithGoogle: (onSuccess?: () => void) => Promise<void>;
+  runAfterSignIn: (user: User, onSuccess?: () => void) => Promise<void>;
+  runAfterSignUp: (
+    user: User,
+    userData: Omit<UserSignUpDataType, 'uid'>,
+    onSuccess?: () => void,
+  ) => Promise<void>;
   reloadUser: () => Promise<void>;
   fetchUserData: (uid: string) => Promise<void>;
   listenToUser: () => (() => void)[];
@@ -107,8 +99,7 @@ export const useUserStore = create<UserState>()(
         fcmToken: undefined,
         setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
         setUser: (user) => set({ user }),
-        setFcmToken: (fcmToken: string) =>
-          set({ fcmToken, _hasHydrated: true }),
+        setFcmToken: (fcmToken: string) => set({ fcmToken }),
         reloadUser: async () => {
           try {
             const user = auth.currentUser;
@@ -117,45 +108,46 @@ export const useUserStore = create<UserState>()(
               // console.log("Reloaded user:", user); // now has updated values
             }
           } catch (error) {
-            console.log("reloadUser | userStore Err: ", error);
+            console.log('reloadUser | userStore Err: ', error);
             throw error;
           }
         },
         clearUser: () => set({ user: null }),
-        updateUserProfilePic: async (
-          updatedUser: CurrentUser,
-          profileImageFile: File
-        ) => {
+        updateUserProfilePic: async (updatedUser: CurrentUser, profileImageFile: File) => {
           if (!updatedUser?.uid) return; // If there's no UID, don't update.
 
           try {
-            let photoURL = updatedUser.photoURL || "";
+            let photoURL = updatedUser.photoURL || '';
             // let thumbnailURL = updatedUser.thumbnailURL || "";
 
             // Upload new profile image if available
-            if (profileImageFile) {
-              const uploaded = await uploadProfileImage(
-                profileImageFile,
-                updatedUser.uid
-              );
-              photoURL = uploaded.fileUrl;
-              // thumbnailURL = uploaded.thumbnailUrl;
-            }
+            const uploaded = await uploadProfileImage(profileImageFile, updatedUser.uid);
+            photoURL = uploaded.fileUrl;
+            // thumbnailURL = uploaded.thumbnailUrl;
             // Assuming the collection name is 'users'
-            await updateDoc(doc(firestore, "Users", updatedUser.uid), {
+            updatedUser.photoURL = photoURL;
+            await updateDoc(doc(firestore, 'Users', updatedUser.uid), {
               ...updatedUser,
               photoURL,
               updatedAt: Timestamp.now(), // Set updatedAt field to current timestamp
             });
+
             const user = auth.currentUser;
-            if (user && profileImageFile) {
+            if (user) {
               await updateProfile(user, { photoURL });
               await user.reload(); // ⬅️ This fetches the latest data from Firebase
               // console.log("Reloaded user:", user); // now has updated values
+
+              await sendNotification({
+                topic: user?.uid ?? '',
+                title: 'Profile picture is updated!',
+                body: 'Profile picture is updated successfully!',
+                imageUrl: photoURL,
+              });
             }
             set({ user: updatedUser });
           } catch (error) {
-            console.error("Error updating user profile pic data:", error);
+            console.error('Error updating user profile pic data:', error);
             throw error;
           }
         },
@@ -164,7 +156,7 @@ export const useUserStore = create<UserState>()(
           try {
             // Update Firestore document for user
             // Assuming the collection name is 'users'
-            await updateDoc(doc(firestore, "Users", updatedUser.uid), {
+            await updateDoc(doc(firestore, 'Users', updatedUser.uid), {
               ...updatedUser,
               updatedAt: Timestamp.now(), // Set updatedAt field to current timestamp
             });
@@ -173,7 +165,7 @@ export const useUserStore = create<UserState>()(
 
             if (user && get().user?.displayName != updatedUser.displayName) {
               await updateProfile(user, {
-                displayName: updatedUser.displayName ?? "",
+                displayName: updatedUser.displayName ?? '',
               });
               await user.reload(); // ⬅️ This fetches the latest data from Firebase
               // console.log("Reloaded user:", user); // now has updated values
@@ -181,50 +173,82 @@ export const useUserStore = create<UserState>()(
 
             // Update local Zustand store with new user data
             set({ user: updatedUser });
+
+            await sendNotification({
+              topic: user?.uid ?? '',
+              title: 'Profile is updated!',
+              body: 'Profile is updated successfully!',
+            });
           } catch (error) {
-            console.error("Error updating user data:", error);
+            console.error('Error updating user data:', error);
             throw error;
           }
         },
         // Sign-up function to create a new user and store it in Firestore
         signUp: async (email, password, userData, onSuccess?: () => void) => {
-          try {
-            const { setHasHydrated } = get();
-            //   const trace = performance.trace("custom_trace");
-            const userCredential = await createUserWithEmailAndPassword(
-              auth,
-              email,
-              password
-            );
-            const user = userCredential.user;
+          const { runAfterSignUp } = get();
+          const signUpTrace = trace(performance, 'sign_up_time');
 
+          try {
+            signUpTrace.start();
+            const user: User = (await createUserWithEmailAndPassword(auth, email, password)).user;
+            await runAfterSignUp(user, userData, onSuccess);
+            logEvent(analytics, 'sign_up', { method: 'email_password' });
+          } catch (err) {
+            console.error('Error signing up:', err);
+            throw err;
+          } finally {
+            signUpTrace.stop();
+          }
+        },
+        signUpWithGoogle: async (onSuccess?: () => void) => {
+          const { runAfterSignUp } = get();
+          const googleSignUpTrace = trace(performance, 'google_sign_up_time');
+
+          try {
+            googleSignUpTrace.start();
+            const user: User = (await signInWithPopup(auth, new GoogleAuthProvider())).user;
+            await runAfterSignUp(
+              user,
+              {
+                email: user?.email ?? '',
+                displayName: user?.displayName ?? '',
+                phoneNumber: user?.phoneNumber ?? '',
+                photoURL: user?.photoURL ?? '',
+                address: 'Update your address',
+                currentOccupation: 'Update',
+                vibe: 'What’s your vibe today? Spill the tea! ☕️🔥',
+                story: 'Share a bit about yourself, your passions, and what drives you! 💬✨',
+                hobbies: [],
+              },
+              onSuccess,
+            );
+            logEvent(analytics, 'sign_up', { method: 'google' });
+          } catch (err) {
+            console.error('Error google signing up:', err);
+            throw err;
+          } finally {
+            googleSignUpTrace.stop();
+          }
+        },
+        runAfterSignUp: async (user: User, userData, onSuccess?: () => void) => {
+          try {
             const timestamp = Timestamp.now();
             // Create the user document in Firestore with additional data
-            await setDoc(doc(firestore, "Users", user.uid), {
+            await setDoc(doc(firestore, 'Users', user.uid), {
               ...userData,
+              ipAddress: await getIpAddress(),
+              lastUsedIpAddress: await getIpAddress(),
               uid: user.uid,
               createdAt: timestamp,
               updatedAt: timestamp,
             });
-            const token = await getFCMToken(setHasHydrated);
-            const userIdToken = await user.getIdToken(true);
-            if (!token || token === "") throw Error("No token from fcm");
 
-            await fetchWithAppCheck(`/api/create-session`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${userIdToken}`,
-              },
-              body: JSON.stringify({
-                idToken: userIdToken,
-                token,
-              }),
+            await fetchWithAppCheck(`/api/create-session`, await user.getIdToken(), {
+              method: 'POST',
             });
 
-            if (onSuccess) {
-              onSuccess();
-            }
+            if (onSuccess) onSuccess();
 
             // Update Zustand store with new user data
             set({
@@ -236,109 +260,119 @@ export const useUserStore = create<UserState>()(
                 updatedAt: timestamp,
                 emailVerified: user.emailVerified,
                 occupationHistory: {
-                  occupation: "",
+                  occupation: '',
                   occupationUpdatedAt: timestamp,
                 },
                 photoURL: user.photoURL,
                 providerData: [],
               },
               _hasHydrated: true,
-              fcmToken: token,
             });
           } catch (err) {
-            console.error("Error signing up:", err);
+            console.error('Error runAfterSignUp signing up:', err);
             throw err;
           }
         },
         // Sign-in function to authenticate the user
         signIn: async (email, password, onSuccess?: () => void) => {
+          const { runAfterSignIn } = get();
+          const signInTrace = trace(performance, 'sign_in_time');
           try {
-            const { fetchUserData, setHasHydrated } = get();
-            const userCredential = await signInWithEmailAndPassword(
-              auth,
-              email,
-              password
-            );
-            const user = userCredential.user;
-
-            // Fetch user data after sign-in
-            await fetchUserData(user.uid);
-            const userIdToken = await user.getIdToken(true);
-            const token = await getFCMToken(setHasHydrated);
-            if (!token || token === "") throw Error("No token from fcm");
-            await fetchWithAppCheck(`/api/create-session`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${userIdToken}`,
-              },
-              body: JSON.stringify({ idToken: userIdToken, token }),
-            });
-
-            if (onSuccess) {
-              onSuccess();
-            }
-
-            set({ fcmToken: token, _hasHydrated: true });
+            signInTrace.start();
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            await runAfterSignIn(userCredential.user, onSuccess);
+            logEvent(analytics, 'login', { method: 'email_password' });
           } catch (err) {
-            console.error("Error signing in:", err);
+            console.error('Error signing in:', err);
             throw err;
+          } finally {
+            signInTrace.stop();
           }
         },
         // Sign-in function with Google authentication
         signInWithGoogle: async (onSuccess?: () => void) => {
+          const { runAfterSignIn } = get();
+          const googleTrace = trace(performance, 'google_sign_in_time');
+
           try {
-            const { setHasHydrated } = get();
-            const result = await signInWithPopup(
-              auth,
-              new GoogleAuthProvider()
-            );
-            const user = result.user;
+            googleTrace.start();
+            const result = await signInWithPopup(auth, new GoogleAuthProvider());
+            await runAfterSignIn(result.user, onSuccess);
+            logEvent(analytics, 'login', { method: 'google' });
+          } catch (err) {
+            console.error('Error signing in with Google:', err);
+            throw err;
+          } finally {
+            googleTrace.stop();
+          }
+        },
+        runAfterSignIn: async (user: User, onSuccess?: () => void) => {
+          try {
+            const { fetchUserData, fcmToken } = get();
 
             // Fetch user data after Google sign-in
-            await useUserStore.getState().fetchUserData(user.uid);
+            await fetchUserData(user.uid);
 
-            const userIdToken = await user.getIdToken(true);
-            const token = await getFCMToken(setHasHydrated);
-            if (!token || token === "") throw Error("No token from fcm");
-            await fetchWithAppCheck(`/api/create-session`, {
-              method: "POST",
+            const idToken = await user.getIdToken();
+
+            await fetchWithAppCheck(`/api/create-session`, idToken ?? '', {
+              method: 'POST',
               headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${userIdToken}`,
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${idToken}`,
               },
-              body: JSON.stringify({ idToken: userIdToken, token }),
+              // body: JSON.stringify({ idToken: userIdToken }),
             });
 
-            if (onSuccess) {
-              onSuccess();
+            const updatedFcmToken = await getFCMToken(fcmToken, true);
+
+            if (
+              updatedFcmToken &&
+              typeof updatedFcmToken === 'string' &&
+              updatedFcmToken.trim() !== ''
+            ) {
+              await fetchWithAppCheck('/api/fcm/subscribe-fcm', idToken, {
+                method: 'POST',
+                body: JSON.stringify({
+                  token: updatedFcmToken,
+                  topic: user?.uid,
+                }),
+                // headers: { 'Content-Type': 'application/json' },
+              });
             }
 
-            set({ fcmToken: token, _hasHydrated: true });
+            if (onSuccess) onSuccess();
+            set({ _hasHydrated: true, fcmToken: updatedFcmToken ?? '' });
+
+            // updateDoc(doc(firestore, `Users/${user.uid}`), {
+            //   lastUsedIpAddress: await getIpAddress(),
+            // }).catch((e) => {
+            //   console.log('runAfterSignIn catch: ', e);
+            // });
           } catch (err) {
-            console.error("Error signing in with Google:", err);
+            console.error('Error signing in with Google:', err);
             throw err;
           }
         },
         // Fetch user data from Firestore and update the store
-        fetchUserData: async (uid) => {
+        fetchUserData: async (uid: string) => {
           try {
-            const userDoc = await getDoc(doc(firestore, "Users", uid));
+            const userDoc = await getDoc(doc(firestore, 'Users', uid));
             if (userDoc.exists()) {
               const userData = userDoc.data();
               set({
                 user: {
                   uid,
                   email: userData.email || null,
-                  displayName: userData.displayName || "",
+                  displayName: userData.displayName || '',
                   emailVerified: userData.emailVerified || false,
-                  phoneNumber: userData.phoneNumber || "",
-                  address: userData.address || "",
+                  phoneNumber: userData.phoneNumber || '',
+                  address: userData.address || '',
                   hobbies: userData.hobbies || [],
-                  story: userData.story || "",
-                  currentOccupation: userData.currentOccupation || "",
+                  story: userData.story || '',
+                  currentOccupation: userData.currentOccupation || '',
                   occupationHistory: userData.occupationHistory,
-                  vibe: userData.vibe || "",
+                  vibe: userData.vibe || '',
                   photoURL: userData.photoURL || null,
                   providerData: userData.providerData || [],
                   createdAt: userData.createdAt,
@@ -347,11 +381,11 @@ export const useUserStore = create<UserState>()(
                 _hasHydrated: true,
               });
             } else {
-              console.log("No such user document!");
-              throw "No such user document!";
+              console.log('No such user document!');
+              throw 'No such user document!';
             }
           } catch (err) {
-            console.error("Error fetching user data:", err);
+            console.error('Error fetching user data:', err);
             throw err;
           }
         },
@@ -363,33 +397,30 @@ export const useUserStore = create<UserState>()(
               await get().reloadUser();
               const uid = firebaseUser.uid;
 
-              const unsubscribe = onSnapshot(
-                doc(firestore, "Users", uid),
-                (userDoc) => {
-                  if (userDoc.exists()) {
-                    const userData = userDoc.data();
-                    set({
-                      user: {
-                        uid,
-                        email: userData.email || null,
-                        displayName: userData.displayName || "",
-                        emailVerified: userData.emailVerified || false,
-                        phoneNumber: userData.phoneNumber || "",
-                        address: userData.address || "",
-                        hobbies: userData.hobbies || [],
-                        story: userData.story || "",
-                        currentOccupation: userData.currentOccupation || "",
-                        occupationHistory: userData.occupationHistory || {},
-                        vibe: userData.vibe || "",
-                        photoURL: userData.photoURL || null,
-                        providerData: userData.providerData || [],
-                        createdAt: userData.createdAt,
-                        updatedAt: userData.updatedAt,
-                      },
-                    });
-                  }
+              const unsubscribe = onSnapshot(doc(firestore, 'Users', uid), (userDoc) => {
+                if (userDoc.exists()) {
+                  const userData = userDoc.data();
+                  set({
+                    user: {
+                      uid,
+                      email: userData.email || null,
+                      displayName: userData.displayName || '',
+                      emailVerified: userData.emailVerified || false,
+                      phoneNumber: userData.phoneNumber || '',
+                      address: userData.address || '',
+                      hobbies: userData.hobbies || [],
+                      story: userData.story || '',
+                      currentOccupation: userData.currentOccupation || '',
+                      occupationHistory: userData.occupationHistory || {},
+                      vibe: userData.vibe || '',
+                      photoURL: userData.photoURL || null,
+                      providerData: userData.providerData || [],
+                      createdAt: userData.createdAt,
+                      updatedAt: userData.updatedAt,
+                    },
+                  });
                 }
-              );
+              });
               unsubList.push(unsubscribe);
             } else {
               resetAllStores();
@@ -412,44 +443,41 @@ export const useUserStore = create<UserState>()(
         },
         logoutUser: async () => {
           const { user, fcmToken } = get();
+
           try {
             await Promise.all([
-              resetAllStores(),
-              fetchWithAppCheck(`/api/delete-session`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
+              fetchWithAppCheck(
+                `/api/delete-session`,
+                (await auth.currentUser?.getIdToken()) ?? '',
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${(await auth.currentUser?.getIdToken()) ?? ''}`,
+                  },
+                  body: JSON.stringify({
+                    fcmToken: fcmToken,
+                    topic: user?.uid,
+                  }),
                 },
-                body: JSON.stringify({
-                  token: fcmToken,
-                  topic: user?.uid,
-                  idToken: await auth.currentUser?.getIdToken(true),
-                }),
-              }),
-              // fetchWithAppCheck("/api/fcm/unsubscribe-fcm", {
-              //   method: "POST",
-              //   body: JSON.stringify({
-              //     token: fcmToken,
-              //     topic: user?.uid,
-              //   }),
-              //   headers: { "Content-Type": "application/json" },
-              // }),
+              ),
               signOut(auth), // Firebase logout
+              resetAllStores(),
             ]);
           } catch (err) {
-            console.error("Error during logout:", err);
+            console.error('Error during logout:', err);
             throw err;
           }
         },
       }),
       {
-        name: "user-storage", // The key used to store the data in localStorage
+        name: 'user-storage', // The key used to store the data in localStorage
         storage: createJSONStorage(() => localStorage),
         onRehydrateStorage: () => (state) => {
           state?.setHasHydrated(true);
         },
-      }
+      },
     ),
-    { enabled: true }
-  )
+    { enabled: false },
+  ),
 );

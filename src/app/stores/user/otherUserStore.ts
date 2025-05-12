@@ -1,21 +1,7 @@
-import { create } from "zustand";
-import { createJSONStorage, devtools, persist } from "zustand/middleware";
-import { auth, firestore } from "../../config/firebase.config";
-import {
-  collection,
-  doc,
-  documentId,
-  getDoc,
-  getDocs,
-  onSnapshot,
-  query,
-  setDoc,
-  Timestamp,
-  updateDoc,
-  where,
-} from "firebase/firestore";
-import { uploadProfileImage } from "../../utils/uploadFiles";
-import { resetAllStores } from "../../utils/resetAllStores";
+import { create } from 'zustand';
+import { createJSONStorage, devtools, persist } from 'zustand/middleware';
+import { firestore } from '../../config/firebase.config';
+import { collection, documentId, getDocs, query, where } from 'firebase/firestore';
 
 // Define the types for User data and store
 export interface OtherUser {
@@ -46,7 +32,7 @@ export const useOtherUserStore = create<OtherUsersState>()(
         setHasHydrated: () => set({ _hasHydrated: true }),
         otherUsers: [],
         setOtherUsers: (otherUsers) => set({ otherUsers }),
-        clearUser: () => set({ otherUsers: null, _hasHydrated: true }),
+        clearUser: () => set({ otherUsers: null }),
         // updateOtherUsers: async (otherUsers: OtherUser[]) => {},
         // Fetch user data from Firestore and update the store
         fetchOtherUserData: async (uids: string[]) => {
@@ -54,24 +40,18 @@ export const useOtherUserStore = create<OtherUsersState>()(
           try {
             if (uids.length == 0) return;
             const uniqueUids = uids.filter(
-              (uid) =>
-                !new Set((get().otherUsers ?? []).map((user) => user.uid)).has(
-                  uid
-                )
+              (uid) => !new Set((get().otherUsers ?? []).map((user) => user.uid)).has(uid),
             );
             if (uniqueUids.length == 0) return;
             const snapshot = await getDocs(
-              query(
-                collection(firestore, "Users"),
-                where(documentId(), "in", uniqueUids)
-              )
+              query(collection(firestore, 'Users'), where(documentId(), 'in', uniqueUids)),
             );
 
             set({
               otherUsers: snapshot.docs.map((doc) => ({
                 uid: doc.id,
-                displayName: doc.data()["displayName"],
-                photoURL: doc.data()["photoURL"],
+                displayName: doc.data()['displayName'],
+                photoURL: doc.data()['photoURL'],
               })),
             });
           } catch (err) {
@@ -111,20 +91,20 @@ export const useOtherUserStore = create<OtherUsersState>()(
         //   return unsubscribe; // ☝️ Always return unsubscribe function
         // },
         clearOtherUsers: () => {
-          set({ otherUsers: [], _hasHydrated: true });
+          set({ otherUsers: [] });
         },
         reset: () => {
-          set({ otherUsers: null, _hasHydrated: true });
+          set({ otherUsers: null });
         },
       }),
       {
-        name: "other-user-storage", // The key used to store the data in localStorage
+        name: 'other-user-storage', // The key used to store the data in localStorage
         storage: createJSONStorage(() => localStorage),
         onRehydrateStorage: () => (state) => {
           state?.setHasHydrated();
         },
-      }
+      },
     ),
-    { enabled: true }
-  )
+    { enabled: false },
+  ),
 );
