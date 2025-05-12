@@ -1,12 +1,12 @@
-// app/components/Header.tsx
-import Image from "next/image";
-import { headers } from "next/headers";
-import Link from "next/link";
-import LogoutButton from "./Button/LogoutButton";
-import { DocumentData } from "firebase-admin/firestore";
-import { Button } from "./Button/Button";
-import { getNotifications, getUserData } from "../utils/utils";
-import NotificationDropdown from "./Notification/NotificationDropdown";
+import Image from 'next/image';
+import { headers } from 'next/headers';
+import Link from 'next/link';
+import LogoutButton from './Button/LogoutButton';
+import { DocumentData } from 'firebase-admin/firestore';
+import { Button } from './Button/Button';
+import { getNotifications } from '../utils/utils';
+import NotificationDropdown from './Notification/NotificationDropdown';
+import { ThemeSwitcher } from './Theme/ThemeSwitcher';
 
 interface HeaderProps {
   appData: DocumentData | undefined;
@@ -15,97 +15,140 @@ interface HeaderProps {
 
 export default async function Header({ appData, user }: HeaderProps) {
   const headerData = await headers();
-  const pathname = headerData.get("next-url") || "/";
+  const pathname = headerData.get('next-url') || '/';
 
   const isActive = (route: string) =>
-    pathname === route ? "bg-base-200 font-semibold" : "hover:bg-base-100";
+    pathname === route ? 'bg-base-200 font-semibold' : 'hover:bg-base-100';
 
-  const notifications = await getNotifications(); // ✅ Fetch notifications on the server
+  const notifications = await getNotifications();
+
+  // const closeDrawer = () => {
+  //   (document.getElementById("mobile-drawer")as HTMLInputElement)!.checked = false;
+  // };
 
   return (
-    <header className="bg-base-100 shadow-md sticky top-0 z-50 w-full">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-        {/* Left: App Data - Logo & Branding */}
-        <Link
-          href="/"
-          className="flex items-center gap-3 hover:scale-105 transition"
-        >
+    <header className="bg-base-100 text-base-content shadow sticky top-0 z-50 w-full">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between">
+        {/* Left: Logo + Branding */}
+        <Link href="/" className="flex items-center gap-3 hover:scale-105 transition">
           {appData?.logoUrl && (
             <Image
               src={appData.logoUrl}
               alt="Logo"
-              width={50}
-              height={50}
+              width={40}
+              height={40}
               className="rounded-md object-contain"
             />
           )}
           <div className="flex flex-col">
-            <span className="text-lg md:text-xl font-bold">
-              {appData?.appName}
-            </span>
-            <span className="text-xs text-gray-500">{appData?.tagline}</span>
+            <span className="text-lg md:text-xl font-bold">{appData?.appName}</span>
+            <span className="text-xs text-base-content/70">{appData?.tagline}</span>
           </div>
         </Link>
 
-        {/* Center: Navigation Links */}
-        <nav className="flex gap-5">
+        {/* Center: Navigation (hidden on mobile) */}
+        <nav className="hidden md:flex gap-4">
           {user && (
             <>
-              <Link
-                href="/posts"
-                className={`btn btn-ghost ${isActive("/posts")}`}
-              >
+              <Link href="/posts" className={`btn btn-ghost btn-sm ${isActive('/posts')}`}>
                 Posts
               </Link>
-              <Link
-                href="/profile"
-                className={`btn btn-ghost ${isActive("/profile")}`}
-              >
+              <Link href="/profile" className={`btn btn-ghost btn-sm ${isActive('/profile')}`}>
                 Profile
               </Link>
             </>
           )}
         </nav>
 
-        {/* Right: User Actions */}
-        <div className="flex items-center gap-4">
-          {user ? (
-            <>
-              {/* 🔔 Notification Dropdown (Open via Query Params) */}
-              <NotificationDropdown notifications={notifications} />
+        {/* Right: Actions + Hamburger */}
+        <div className="flex items-center gap-2">
+          <ThemeSwitcher />
+          {user && <NotificationDropdown notifications={notifications} />}
 
-              {/* Avatar & User Dropdown */}
-              <div className="dropdown dropdown-end">
-                <div tabIndex={0} className="btn btn-ghost btn-circle avatar">
-                  <Image
-                    src={
-                      user.photoURL ||
-                      `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                        user.displayName || "User"
-                      )}`
-                    }
-                    alt="Profile"
-                    width={40}
-                    height={40}
-                    className="rounded-full object-cover"
-                  />
-                </div>
-                <ul className="menu dropdown-content bg-base-100 rounded-md shadow-md mt-2 w-48">
-                  <li>
-                    <Link href="/profile">Profile</Link>
-                  </li>
-                  <li>
-                    <LogoutButton />
-                  </li>
-                </ul>
+          {user ? (
+            <div className="dropdown dropdown-end hidden lg:flex">
+              <div tabIndex={0} className="btn btn-ghost btn-circle avatar">
+                <Image
+                  src={
+                    user.photoURL ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'User')}`
+                  }
+                  alt="Profile"
+                  width={36}
+                  height={36}
+                  className="rounded-full object-cover"
+                />
               </div>
-            </>
+              <ul className="menu dropdown-content bg-base-100 text-base-content rounded-md shadow w-48 mt-2">
+                <li>
+                  <Link href="/profile">Profile</Link>
+                </li>
+                <li>
+                  <LogoutButton />
+                </li>
+              </ul>
+            </div>
           ) : (
             <Link href="/sign-in">
-              <Button className="btn btn-primary">Sign In</Button>
+              <Button className="btn btn-primary btn-sm">Sign In</Button>
             </Link>
           )}
+
+          {/* Mobile Hamburger */}
+          <label htmlFor="mobile-drawer" className="btn btn-ghost md:hidden">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </label>
         </div>
+      </div>
+
+      {/* Mobile Drawer */}
+      <input id="mobile-drawer" type="checkbox" className="drawer-toggle hidden" />
+      <div className="drawer-side z-50">
+        <label htmlFor="mobile-drawer" className="drawer-overlay"></label>
+        <ul className="menu p-4 w-64 bg-base-200 text-base-content h-full">
+          <li>
+            <Link href="/">Home</Link>
+          </li>
+          {user && (
+            <>
+              <li>
+                <Link href="/posts" className={isActive('/posts')}>
+                  Posts
+                </Link>
+              </li>
+              <li>
+                <Link href="/profile" className={isActive('/profile')}>
+                  Profile
+                </Link>
+              </li>
+            </>
+          )}
+          <li className="mt-2">
+            <ThemeSwitcher />
+          </li>
+          <li>
+            {user ? (
+              <LogoutButton />
+            ) : (
+              <Link href="/sign-in">
+                <Button className="btn btn-primary w-full">Sign In</Button>
+              </Link>
+            )}
+          </li>
+        </ul>
       </div>
     </header>
   );
