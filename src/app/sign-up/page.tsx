@@ -1,30 +1,30 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useUserStore } from "../stores/user/userStore";
-import { useRedirectIfAuthenticated } from "../hooks/useRedirectIfAuthenticated";
-import InputField from "../components/Input/InputField";
-import TextAreaField from "../components/Input/TextAreaField";
-import { useShallow } from "zustand/shallow";
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useUserStore } from '../stores/user/userStore';
+import InputField from '../components/Input/InputField';
+import TextAreaField from '../components/Input/TextAreaField';
+import { useShallow } from 'zustand/shallow';
 
 const SignUp = () => {
-  const { ready, hydrated } = useRedirectIfAuthenticated();
+  // const { ready, hydrated } = useRedirectIfAuthenticated();
   const router = useRouter();
-  const user = useUserStore(useShallow((state) => state.user));
   const signUp = useUserStore((state) => state.signUp);
   const signInWithGoogle = useUserStore((state) => state.signInWithGoogle);
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [currentOccupation, setCurrentOccupation] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [currentOccupation, setCurrentOccupation] = useState('');
   const [hobbies, setHobbies] = useState<string[]>([]);
-  const [story, setStory] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [vibe, setVibe] = useState("");
-  const [address, setAddress] = useState("");
+  const [story, setStory] = useState(
+    'Share a bit about yourself, your passions, and what drives you! 💬✨',
+  );
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [vibe, setVibe] = useState('What’s your vibe today? Spill the tea! ☕️🔥');
+  const [address, setAddress] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -33,7 +33,7 @@ const SignUp = () => {
     setError(null);
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError('Passwords do not match.');
       return;
     }
 
@@ -49,13 +49,13 @@ const SignUp = () => {
         currentOccupation,
         vibe,
         photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(
-          displayName ?? ""
+          displayName ?? '',
         )}&rounded=true&background=0D8ABC&color=fff`,
       });
-      router.replace("/");
+      router.replace('/');
     } catch (err) {
       console.error(err);
-      setError("Error creating account.");
+      setError('Error creating account.');
     } finally {
       setLoading(false);
     }
@@ -66,7 +66,7 @@ const SignUp = () => {
     setLoading(true);
     try {
       await signInWithGoogle();
-      router.push("/profile");
+      router.push('/');
     } catch (err: any) {
       console.error(err);
       setError(err.message);
@@ -75,9 +75,7 @@ const SignUp = () => {
     }
   };
 
-  return !ready || user || !hydrated? (
-    <p>Loading!</p>
-  ) : (
+  return (
     <div className="min-h-screen bg-gray-100 flex justify-center items-center p-4">
       <div className="w-full max-w-2xl bg-white p-8 rounded-lg shadow-lg overflow-auto">
         <h2 className="text-2xl font-bold text-center mb-6">Sign Up</h2>
@@ -88,14 +86,10 @@ const SignUp = () => {
             type="button"
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className={`btn btn-outline gap-2 ${loading ? "btn-disabled" : ""}`}
+            className={`btn btn-outline gap-2 ${loading ? 'btn-disabled' : ''}`}
           >
             {/* Google G Logo SVG */}
-            <svg
-              className="w-5 h-5"
-              viewBox="0 0 533.5 544.3"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+            <svg className="w-5 h-5" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg">
               <path
                 d="M533.5 278.4c0-17.4-1.5-34.1-4.3-50.3H272.1v95.2h146.9c-6.3 33.5-25.2 61.9-53.7 81l86.9 67.6c50.6-46.7 81.3-115.6 81.3-193.5z"
                 fill="#4285F4"
@@ -113,7 +107,7 @@ const SignUp = () => {
                 fill="#EA4335"
               />
             </svg>
-            {loading ? "Signing in..." : "Continue with Google"}
+            {loading ? 'Signing in...' : 'Continue with Google'}
           </button>
         </div>
 
@@ -122,9 +116,9 @@ const SignUp = () => {
             id="displayName"
             label="Full Name"
             value={displayName}
-            onChange={(e: {
-              target: { value: React.SetStateAction<string> };
-            }) => setDisplayName(e.target.value)}
+            onChange={(e: { target: { value: React.SetStateAction<string> } }) =>
+              setDisplayName(e.target.value)
+            }
             required
           />
 
@@ -133,9 +127,9 @@ const SignUp = () => {
             label="Email"
             type="email"
             value={email}
-            onChange={(e: {
-              target: { value: React.SetStateAction<string> };
-            }) => setEmail(e.target.value)}
+            onChange={(e: { target: { value: React.SetStateAction<string> } }) =>
+              setEmail(e.target.value)
+            }
             required
           />
 
@@ -144,9 +138,9 @@ const SignUp = () => {
             label="Password"
             type="password"
             value={password}
-            onChange={(e: {
-              target: { value: React.SetStateAction<string> };
-            }) => setPassword(e.target.value)}
+            onChange={(e: { target: { value: React.SetStateAction<string> } }) =>
+              setPassword(e.target.value)
+            }
             required
           />
 
@@ -155,9 +149,9 @@ const SignUp = () => {
             label="Confirm Password"
             type="password"
             value={confirmPassword}
-            onChange={(e: {
-              target: { value: React.SetStateAction<string> };
-            }) => setConfirmPassword(e.target.value)}
+            onChange={(e: { target: { value: React.SetStateAction<string> } }) =>
+              setConfirmPassword(e.target.value)
+            }
             required
           />
 
@@ -165,18 +159,18 @@ const SignUp = () => {
             id="currentOccupation"
             label="Current Occupation"
             value={currentOccupation}
-            onChange={(e: {
-              target: { value: React.SetStateAction<string> };
-            }) => setCurrentOccupation(e.target.value)}
+            onChange={(e: { target: { value: React.SetStateAction<string> } }) =>
+              setCurrentOccupation(e.target.value)
+            }
             required
           />
 
           <InputField
             id="hobbies"
             label="Hobbies (comma separated)"
-            value={hobbies.join(", ")}
+            value={hobbies.join(', ')}
             onChange={(e: { target: { value: string } }) =>
-              setHobbies(e.target.value.split(",").map((h: string) => h.trim()))
+              setHobbies(e.target.value.split(',').map((h: string) => h.trim()))
             }
             required
           />
@@ -185,9 +179,9 @@ const SignUp = () => {
             id="story"
             label="Your Story"
             value={story}
-            onChange={(e: {
-              target: { value: React.SetStateAction<string> };
-            }) => setStory(e.target.value)}
+            onChange={(e: { target: { value: React.SetStateAction<string> } }) =>
+              setStory(e.target.value)
+            }
             required
           />
 
@@ -195,9 +189,9 @@ const SignUp = () => {
             id="phoneNumber"
             label="Phone Number"
             value={phoneNumber}
-            onChange={(e: {
-              target: { value: React.SetStateAction<string> };
-            }) => setPhoneNumber(e.target.value)}
+            onChange={(e: { target: { value: React.SetStateAction<string> } }) =>
+              setPhoneNumber(e.target.value)
+            }
             required
           />
 
@@ -205,9 +199,9 @@ const SignUp = () => {
             id="vibe"
             label="Vibe"
             value={vibe}
-            onChange={(e: {
-              target: { value: React.SetStateAction<string> };
-            }) => setVibe(e.target.value)}
+            onChange={(e: { target: { value: React.SetStateAction<string> } }) =>
+              setVibe(e.target.value)
+            }
             required
           />
 
@@ -215,20 +209,18 @@ const SignUp = () => {
             id="address"
             label="Address"
             value={address}
-            onChange={(e: {
-              target: { value: React.SetStateAction<string> };
-            }) => setAddress(e.target.value)}
+            onChange={(e: { target: { value: React.SetStateAction<string> } }) =>
+              setAddress(e.target.value)
+            }
             required
           />
 
           <button
             type="submit"
             disabled={loading}
-            className={`btn w-full mt-4 ${
-              loading ? "btn-disabled" : "btn-primary"
-            }`}
+            className={`btn w-full mt-4 ${loading ? 'btn-disabled' : 'btn-primary'}`}
           >
-            {loading ? "Signing Up..." : "Sign Up"}
+            {loading ? 'Signing Up...' : 'Sign Up'}
           </button>
         </form>
       </div>
