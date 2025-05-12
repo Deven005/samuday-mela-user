@@ -20,7 +20,7 @@ const TextAreaField: React.FC<TextAreaFieldProps> = ({
   placeholder,
 }) => {
   return (
-    <div className="form-control mb-4">
+    <div className="form-control mb-4 transition duration-200 hover:scale-105 text-base-content">
       <label htmlFor={id} className="label">
         <span className="label-text font-semibold">{label}</span>
       </label>
