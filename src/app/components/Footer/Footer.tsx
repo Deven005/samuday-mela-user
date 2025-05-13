@@ -1,13 +1,14 @@
 import Link from 'next/link';
 import { DocumentData } from 'firebase-admin/firestore';
 import FooterClient from './FooterClient';
+import { getUserData } from '@/app/utils/utils';
 
 interface FooterPropType {
   appData: DocumentData | undefined;
-  user: DocumentData | null | undefined;
 }
 
-const Footer = ({ appData, user }: FooterPropType) => {
+const Footer = async ({ appData }: FooterPropType) => {
+  const user = await getUserData();
   return (
     <>
       <FooterClient />

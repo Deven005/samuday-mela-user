@@ -4,18 +4,18 @@ import Link from 'next/link';
 import LogoutButton from './Button/LogoutButton';
 import { DocumentData } from 'firebase-admin/firestore';
 import { Button } from './Button/Button';
-import { getNotifications } from '../utils/utils';
+import { getNotifications, getUserData } from '../utils/utils';
 import NotificationDropdown from './Notification/NotificationDropdown';
 import { ThemeSwitcher } from './Theme/ThemeSwitcher';
 
 interface HeaderProps {
   appData: DocumentData | undefined;
-  user: DocumentData | null | undefined;
 }
 
-export default async function Header({ appData, user }: HeaderProps) {
+export default async function Header({ appData }: HeaderProps) {
   const headerData = await headers();
   const pathname = headerData.get('next-url') || '/';
+  const user = await getUserData();
 
   const isActive = (route: string) =>
     pathname === route ? 'bg-base-200 font-semibold' : 'hover:bg-base-100';
