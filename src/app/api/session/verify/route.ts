@@ -1,5 +1,5 @@
-// app/api/verify-session/route.ts
-import { serverAuth, serverFirestore } from '@/app/config/firebase.server.config';
+// app/api/session/verify/route.ts
+import { serverAuth } from '@/app/config/firebase.server.config';
 import { clearUserData } from '@/app/utils/utils';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -9,8 +9,6 @@ export async function POST(req: NextRequest) {
   try {
     const sessionCookie = req.headers.get('session') as string;
     const idToken = req.headers.get('Authorization')?.replace('Bearer ', '');
-
-    // console.log('verify-session headers: ', req.headers);
 
     if (!sessionCookie && !idToken)
       return NextResponse.json(
