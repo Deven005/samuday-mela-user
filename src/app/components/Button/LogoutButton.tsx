@@ -2,6 +2,7 @@
 'use client';
 import { useUserStore } from '@/app/stores/user/userStore';
 import { useRouter } from 'next/navigation';
+import { Button } from './Button';
 
 export default function LogoutButton() {
   const router = useRouter();
@@ -10,18 +11,17 @@ export default function LogoutButton() {
   const logoutClick = async () => {
     try {
       await logout();
-    } catch (error) {
-      console.log('logoutClick: ', error);
-    } finally {
-      router.push('/sign-in');
+      router.replace('/sign-in');
       router.refresh();
       localStorage.clear();
+    } catch (error) {
+      console.log('logoutClick: ', error);
     }
   };
 
   return (
-    <button type="submit" onClick={logoutClick}>
+    <Button type="submit" onClick={logoutClick}>
       Logout
-    </button>
+    </Button>
   );
 }
