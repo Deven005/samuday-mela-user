@@ -7,9 +7,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import Footer from './components/Footer/Footer';
 import Header from './components/Header';
-import { DocumentData } from 'firebase-admin/firestore';
-import { clearUserData, getAppData, getUserData } from './utils/utils';
-import { cookies } from 'next/headers';
+import { getAppData } from './utils/utils';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -78,12 +76,6 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const appData = await getAppData();
-  let user: DocumentData | null | undefined = null;
-  try {
-    user = await getUserData();
-  } catch (error: any) {
-    console.log('Home:', error ?? 'Something is wrong!');
-  }
 
   return (
     <html lang="en" data-theme="system">
@@ -93,9 +85,9 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
       >
-        <Header appData={appData} user={user} />
+        <Header appData={appData} />
         <main className="bg-base-100">{children}</main>
-        <Footer appData={appData} user={user} />
+        <Footer appData={appData} />
 
         <Analytics />
         <SpeedInsights />
