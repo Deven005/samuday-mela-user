@@ -1,5 +1,4 @@
 'use client';
-
 import { useState } from 'react';
 import { useUserStore } from '../stores/user/userStore';
 import { useRouter } from 'next/navigation';
@@ -22,7 +21,7 @@ const SignIn = () => {
     setLoading(true);
     try {
       await signInWithGoogle();
-      router.push('/');
+      router.replace('/');
       router.refresh();
     } catch (err: any) {
       console.error(err);
