@@ -233,6 +233,8 @@ export const useUserStore = create<UserState>()(
         },
         runAfterSignUp: async (user: User, userData, onSuccess?: () => void) => {
           try {
+            const { fcmToken } = get();
+
             const timestamp = Timestamp.now();
             // Create the user document in Firestore with additional data
             await setDoc(doc(firestore, 'Users', user.uid), {
@@ -244,9 +246,25 @@ export const useUserStore = create<UserState>()(
               updatedAt: timestamp,
             });
 
-            await fetchWithAppCheck(`/api/create-session`, await user.getIdToken(), {
+            await fetchWithAppCheck(`/api/session/create`, await user.getIdToken(), {
               method: 'POST',
             });
+
+            const updatedFcmToken = await getFCMToken(fcmToken, true);
+
+            if (
+              updatedFcmToken &&
+              typeof updatedFcmToken === 'string' &&
+              updatedFcmToken.trim() !== ''
+            ) {
+              await fetchWithAppCheck('/api/fcm/subscribe-fcm', await user.getIdToken(), {
+                method: 'POST',
+                body: JSON.stringify({
+                  token: updatedFcmToken,
+                  topic: user?.uid,
+                }),
+              });
+            }
 
             if (onSuccess) onSuccess();
 
@@ -315,13 +333,8 @@ export const useUserStore = create<UserState>()(
 
             const idToken = await user.getIdToken();
 
-            await fetchWithAppCheck(`/api/create-session`, idToken ?? '', {
+            await fetchWithAppCheck(`/api/session/create`, idToken ?? '', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${idToken}`,
-              },
-              // body: JSON.stringify({ idToken: userIdToken }),
             });
 
             const updatedFcmToken = await getFCMToken(fcmToken, true);
@@ -337,7 +350,6 @@ export const useUserStore = create<UserState>()(
                   token: updatedFcmToken,
                   topic: user?.uid,
                 }),
-                // headers: { 'Content-Type': 'application/json' },
               });
             }
 
@@ -438,29 +450,21 @@ export const useUserStore = create<UserState>()(
           // Clear all listeners manually if needed (e.g., on component unmount)
           set((state) => {
             state.listeners.forEach((unsubscribe) => unsubscribe());
-            return {};
+            return { fcmToken: '' };
           });
         },
         logoutUser: async () => {
-          const { user, fcmToken } = get();
+          const { fcmToken } = get();
 
           try {
             await Promise.all([
-              fetchWithAppCheck(
-                `/api/delete-session`,
-                (await auth.currentUser?.getIdToken()) ?? '',
-                {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${(await auth.currentUser?.getIdToken()) ?? ''}`,
-                  },
-                  body: JSON.stringify({
-                    fcmToken: fcmToken,
-                    topic: user?.uid,
-                  }),
-                },
-              ),
+              fetchWithAppCheck(`/api/auth/logout`, (await auth.currentUser?.getIdToken()) ?? '', {
+                method: 'POST',
+                body: JSON.stringify({
+                  fcmToken: fcmToken,
+                  fcmTopics: [],
+                }),
+              }),
               signOut(auth), // Firebase logout
               resetAllStores(),
             ]);
