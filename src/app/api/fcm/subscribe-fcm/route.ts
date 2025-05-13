@@ -6,21 +6,12 @@ import { NextResponse } from 'next/server';
 export async function POST(req: Request) {
   const { token, topic } = await req.json();
 
-  console.log('fcm-subscribe post called!');
-  console.log('subscribe-fcm token: ', token);
-  console.log('subscribe-fcm topic: ', topic);
-
   if (!token || !topic) {
     return NextResponse.json({ error: 'Missing token or topic', success: false }, { status: 400 });
   }
 
   try {
     const messSubscribe = await messaging().subscribeToTopic(token, topic);
-    console.log(messSubscribe.successCount, messSubscribe.failureCount, messSubscribe.errors);
-
-    console.log('subscribe-fcm messSubscribe.successCount: ', messSubscribe.successCount);
-    console.log('subscribe-fcm messSubscribe.failureCount: ', messSubscribe.failureCount);
-    console.log('subscribe-fcm messSubscribe.errors: ', messSubscribe.errors);
 
     if (messSubscribe.errors.length > 0) throw messSubscribe.errors;
 
@@ -43,11 +34,6 @@ export async function POST(req: Request) {
       ],
       true,
     );
-
-    console.log('fcmRes: ', fcmRes);
-    console.log('subscribe-fcm messSubscribe.successCount: ', fcmRes.successCount);
-    console.log('subscribe-fcm messSubscribe.failureCount: ', fcmRes.failureCount);
-    console.log('subscribe-fcm messSubscribe.responses: ', fcmRes.responses[0]);
 
     if (fcmRes.failureCount > 0) throw fcmRes.responses.map((e) => e.error);
 
