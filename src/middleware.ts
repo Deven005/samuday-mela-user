@@ -1,4 +1,5 @@
 // middleware.ts
+import { cookies } from 'next/headers';
 import { NextResponse, NextRequest } from 'next/server';
 
 export const config = {
@@ -25,7 +26,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const sessionCookie = request.cookies.get('session')?.value || '';
+  const sessionCookie = (await cookies()).get('session')?.value ?? '';
   const appCheckToken = request.headers.get('X-Firebase-AppCheck') || '';
 
   // try {
@@ -49,7 +50,7 @@ export async function middleware(request: NextRequest) {
   try {
     let userId = null;
     // 🔐 Verify session cookie via secure API call
-    const sessionVerifyRes = await fetch(`${origin}/api/verify-session`, {
+    const sessionVerifyRes = await fetch(`${origin}/api/session/verify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -63,7 +64,7 @@ export async function middleware(request: NextRequest) {
     if (resJson.valid) {
       userId = resJson.uid;
     } else if (!resJson.valid && resJson.error.code === 'auth/session-cookie-expired') {
-      const sessionRenewVerifyRes = await fetch(`${origin}/api/renew-session`, {
+      const sessionRenewVerifyRes = await fetch(`${origin}/api/session/renew`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -71,12 +72,7 @@ export async function middleware(request: NextRequest) {
           session: sessionCookie,
         },
       });
-      console.log('sessionRenewVerifyRes: ', sessionRenewVerifyRes);
-      console.log('sessionRenewVerifyRes: ', await sessionRenewVerifyRes.json());
     }
-
-    console.log('resJson: ', resJson);
-    console.log('sessionVerifyRes.ok: ', sessionVerifyRes.ok);
 
     if (!sessionVerifyRes.ok) {
       // ✅ If path is '/', allow access but clean session if invalid
