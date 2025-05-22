@@ -10,10 +10,13 @@ export const config = {
 const PUBLIC_PATHS = [
   '/sign-in',
   '/sign-up',
+  '/auth/forgot-password',
   '/firebase-messaging-sw.js',
   '/about',
   '/contact',
   '/faq',
+  '/keys/public.pem',
+  '/auth/google/callback',
 ];
 const ROOT_PATH = '/';
 
@@ -27,7 +30,7 @@ export async function middleware(request: NextRequest) {
   }
 
   const sessionCookie = (await cookies()).get('session')?.value ?? '';
-  const appCheckToken = request.headers.get('X-Firebase-AppCheck') || '';
+  // const appCheckToken = request.headers.get('X-Firebase-AppCheck') || '';
 
   // try {
   //   const res = await fetch(
@@ -64,14 +67,14 @@ export async function middleware(request: NextRequest) {
     if (resJson.valid) {
       userId = resJson.uid;
     } else if (!resJson.valid && resJson.error.code === 'auth/session-cookie-expired') {
-      const sessionRenewVerifyRes = await fetch(`${origin}/api/session/renew`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: request.headers.get('Authorization')?.replace('Bearer ', '') ?? '',
-          session: sessionCookie,
-        },
-      });
+      // const sessionRenewVerifyRes = await fetch(`${origin}/api/session/renew`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //     Authorization: request.headers.get('Authorization')?.replace('Bearer ', '') ?? '',
+      //     session: sessionCookie,
+      //   },
+      // });
     }
 
     if (!sessionVerifyRes.ok) {
