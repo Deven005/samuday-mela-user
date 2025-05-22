@@ -70,7 +70,7 @@ export default async function Header({ appData }: HeaderProps) {
               <div tabIndex={0} className="btn btn-ghost btn-circle avatar">
                 <Image
                   src={
-                    user.photoURL ||
+                    user?.photoURL ??
                     `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'User')}`
                   }
                   alt="Profile"
