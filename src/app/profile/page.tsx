@@ -8,6 +8,7 @@ import { StaggeredGrid, StaggeredGridItem } from 'react-staggered-grid';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '../components/Button/Button';
+import LanguageSelector from '../components/languageSelector';
 
 const UserProfile = () => {
   const user = useUserStore(useShallow((state) => state.user));
@@ -55,7 +56,7 @@ const UserProfile = () => {
     <div className="min-h bg-base-100 p-4 text-base-content">
       <div className="mx-10 space-y-6">
         {/* Profile Section */}
-        <div className="card  dark:bg-base-800 shadow-lg rounded-lg flex justify-center items-center">
+        <div className="card dark:bg-base-800 shadow-lg rounded-lg flex justify-center items-center">
           <div className="flex items-center gap-6 mb-4">
             <div className="relative transition duration-200 hover:scale-105 cursor-pointer">
               {uploading ? (
@@ -66,6 +67,7 @@ const UserProfile = () => {
                   height={100}
                   width={100}
                   src={profileImage}
+                  fetchPriority="high"
                   className="w-20 h-20 rounded-full object-cover border-2 border-primary"
                   alt="Profile"
                 />
@@ -77,12 +79,12 @@ const UserProfile = () => {
                 onChange={handleFileChange}
                 className="hidden"
               />
-              <button
+              <Button
                 onClick={() => fileInputRef.current?.click()}
                 className="absolute bottom-0 right-0 btn btn-xs btn-primary"
               >
                 Edit
-              </button>
+              </Button>
             </div>
             <div>
               <h2 className="text-2xl font-bold text-base-content">{user.displayName}</h2>
@@ -91,26 +93,33 @@ const UserProfile = () => {
           </div>
 
           <div className="text-sm space-y-1">
-            <p>
-              <strong className="text-base-content">Phone:</strong> {user.phoneNumber || 'N/A'}
-            </p>
+            {user.phoneNumber && (
+              <p>
+                <strong className="text-base-content">Phone:</strong> {user.phoneNumber || 'N/A'}
+              </p>
+            )}
             <p>
               <strong className="text-base-content">Address:</strong> {user.address || 'N/A'}
             </p>
-            <p>
-              <strong className="text-base-content">Hobbies:</strong>{' '}
-              {user.hobbies.join(', ') || 'N/A'}
-            </p>
+            {user.hobbies && user.hobbies.length > 0 && (
+              <p>
+                <strong className="text-base-content">Hobbies:</strong>{' '}
+                {user.hobbies?.join(', ') || 'N/A'}
+              </p>
+            )}
             <p>
               <strong className="text-base-content">Story:</strong> {user.story || 'N/A'}
             </p>
-            <p>
-              <strong className="text-base-content">Occupation:</strong>{' '}
-              {user.currentOccupation || 'N/A'}
-            </p>
+            {user.currentOccupation && (
+              <p>
+                <strong className="text-base-content">Occupation:</strong>{' '}
+                {user.currentOccupation || 'N/A'}
+              </p>
+            )}
             <p>
               <strong className="text-base-content">Vibe:</strong> {user.vibe || 'N/A'}
             </p>
+            <LanguageSelector />
             <Link href="/profile/edit">
               <div className="mt-3 mb-3">
                 <Button
