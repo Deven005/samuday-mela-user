@@ -7,12 +7,9 @@ export const runtime = 'nodejs'; // Ensure this runs in Node.js
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('api/notification headers: ', req.headers);
+    const reqBody = await req.json();
 
-    const resBody = await req.json();
-    console.log('notification resBody: ', resBody);
-
-    const { topic, title, body, image, imageUrl, icon, logo } = resBody;
+    const { topic, title, body, image, imageUrl, icon, logo } = reqBody;
 
     if (!topic) {
       return NextResponse.json({ error: 'No topic provided' }, { status: 400 });
@@ -25,7 +22,7 @@ export async function POST(req: NextRequest) {
           priority: 'high',
           title: title ?? 'notification title',
           body: body ?? 'notification body',
-          imageUrl: image ?? imageUrl ?? 'https://picsum.photos/200/300',
+          imageUrl: image ?? imageUrl,
           icon:
             icon ??
             'https://firebasestorage.googleapis.com/v0/b/samudaymela.appspot.com/o/public%2FAppLogo.png?alt=media&token=c2d303b5-c27f-4bde-a8c4-5bb434c30237',
