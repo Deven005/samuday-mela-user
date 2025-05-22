@@ -1,30 +1,27 @@
 'use client';
-
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserStore } from '../stores/user/userStore';
 import InputField from '../components/Input/InputField';
-import TextAreaField from '../components/Input/TextAreaField';
-import { useShallow } from 'zustand/shallow';
+import { Button } from '../components/Button/Button';
 
 const SignUp = () => {
   // const { ready, hydrated } = useRedirectIfAuthenticated();
   const router = useRouter();
   const signUp = useUserStore((state) => state.signUp);
-  const signInWithGoogle = useUserStore((state) => state.signInWithGoogle);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [currentOccupation, setCurrentOccupation] = useState('');
-  const [hobbies, setHobbies] = useState<string[]>([]);
-  const [story, setStory] = useState(
-    'Share a bit about yourself, your passions, and what drives you! 💬✨',
-  );
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [vibe, setVibe] = useState('What’s your vibe today? Spill the tea! ☕️🔥');
-  const [address, setAddress] = useState('');
+  // const [currentOccupation, setCurrentOccupation] = useState('');
+  // const [hobbies, setHobbies] = useState<string[]>([]);
+  // const [story, setStory] = useState(
+  //   'Share a bit about yourself, your passions, and what drives you! 💬✨',
+  // );
+  // const [phoneNumber, setPhoneNumber] = useState('');
+  // const [vibe, setVibe] = useState('What’s your vibe today? Spill the tea! ☕️🔥');
+  // const [address, setAddress] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -41,16 +38,16 @@ const SignUp = () => {
     try {
       await signUp(email, password, {
         displayName,
-        email,
-        phoneNumber,
-        address,
-        hobbies,
-        story,
-        currentOccupation,
-        vibe,
-        photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(
-          displayName ?? '',
-        )}&rounded=true&background=0D8ABC&color=fff`,
+        // email,
+        // phoneNumber,
+        // address,
+        // hobbies,
+        // story,
+        // currentOccupation,
+        // vibe,
+        // photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        //   displayName ?? '',
+        // )}&rounded=true&background=0D8ABC&color=fff`,
       });
       router.replace('/');
     } catch (err) {
@@ -65,8 +62,7 @@ const SignUp = () => {
     setError(null);
     setLoading(true);
     try {
-      await signInWithGoogle();
-      router.push('/');
+      router.replace('/api/auth/google');
     } catch (err: any) {
       console.error(err);
       setError(err.message);
@@ -76,17 +72,17 @@ const SignUp = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex justify-center items-center p-4">
-      <div className="w-full max-w-2xl bg-white p-8 rounded-lg shadow-lg overflow-auto">
-        <h2 className="text-2xl font-bold text-center mb-6">Sign Up</h2>
+    <div className="min-h-screen flex justify-center items-center bg-base-100 dark:bg-base-900 p-4">
+      <div className="w-full max-w-2xl p-8 rounded-2xl shadow-2xl overflow-auto bg-base-200 dark:bg-base-800">
+        <h2 className="text-2xl font-bold text-center mb-6 text-base-content">Sign Up</h2>
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
         <div className="mt-6 flex justify-center">
-          <button
+          <Button
             type="button"
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className={`btn btn-outline gap-2 ${loading ? 'btn-disabled' : ''}`}
+            className={`btn btn-outline gap-2 ${loading ? 'btn-disabled' : ''} text-base-content`}
           >
             {/* Google G Logo SVG */}
             <svg className="w-5 h-5" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg">
@@ -108,7 +104,7 @@ const SignUp = () => {
               />
             </svg>
             {loading ? 'Signing in...' : 'Continue with Google'}
-          </button>
+          </Button>
         </div>
 
         <form onSubmit={handleSignUp}>
@@ -155,7 +151,7 @@ const SignUp = () => {
             required
           />
 
-          <InputField
+          {/* <InputField
             id="currentOccupation"
             label="Current Occupation"
             value={currentOccupation}
@@ -173,9 +169,9 @@ const SignUp = () => {
               setHobbies(e.target.value.split(',').map((h: string) => h.trim()))
             }
             required
-          />
+          /> */}
 
-          <TextAreaField
+          {/* <TextAreaField
             id="story"
             label="Your Story"
             value={story}
@@ -183,9 +179,9 @@ const SignUp = () => {
               setStory(e.target.value)
             }
             required
-          />
+          /> */}
 
-          <InputField
+          {/* <InputField
             id="phoneNumber"
             label="Phone Number"
             value={phoneNumber}
@@ -203,9 +199,9 @@ const SignUp = () => {
               setVibe(e.target.value)
             }
             required
-          />
+          /> */}
 
-          <TextAreaField
+          {/* <TextAreaField
             id="address"
             label="Address"
             value={address}
@@ -213,7 +209,7 @@ const SignUp = () => {
               setAddress(e.target.value)
             }
             required
-          />
+          /> */}
 
           <button
             type="submit"

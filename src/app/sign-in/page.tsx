@@ -1,14 +1,14 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useUserStore } from '../stores/user/userStore';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import InputField from '../components/Input/InputField';
 import { Button } from '../components/Button/Button';
+import { useShallow } from 'zustand/shallow';
 
 const SignIn = () => {
-  const signIn = useUserStore((state) => state.signIn);
-  const signInWithGoogle = useUserStore((state) => state.signInWithGoogle);
+  const { signIn, user, _hasHydrated } = useUserStore(useShallow((state) => state));
   const router = useRouter();
 
   const [email, setEmail] = useState('');
@@ -16,13 +16,17 @@ const SignIn = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (user) {
+      window.location.href = '/';
+    }
+  }, [user, _hasHydrated]);
+
   const handleGoogleSignIn = async () => {
     setError(null);
     setLoading(true);
     try {
-      await signInWithGoogle();
-      router.replace('/');
-      router.refresh();
+      router.replace('/api/auth/google');
     } catch (err: any) {
       console.error(err);
       setError(err.message);
@@ -36,17 +40,26 @@ const SignIn = () => {
     setLoading(true);
     try {
       await signIn(email, password);
-      router.replace('/');
-      router.refresh();
-    } catch (err: any) {
-      setError(err.message);
-      console.error(err);
-    } finally {
       setLoading(false);
+      router.push('/');
+    } catch (err: any) {
+      if (err === 'INVALID_LOGIN_CREDENTIALS') {
+        setError('invalid email or pass, or no account exist!');
+      } else {
+        setError(err.message);
+      }
+      console.error(err);
+      setLoading(false);
+    } finally {
+      // setLoading(false);
     }
   };
 
-  return (
+  return user || !_hasHydrated ? (
+    <div className="flex justify-center items-center bg-base-100 dark:bg-base-900 p-4 ">
+      <p className="text-base-content">Loading</p>
+    </div>
+  ) : (
     <div className="flex justify-center items-center bg-base-100 dark:bg-base-900 p-4 min-h-screen">
       <div className="w-full max-w-md bg-base-200 dark:bg-base-800 p-8 rounded-2xl shadow-2xl text-base-content">
         <h2 className="text-3xl font-extrabold text-center mb-6 bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
@@ -59,7 +72,7 @@ const SignIn = () => {
 
         {/* Google Sign-In Button */}
         <div className="mb-6">
-          <button
+          <Button
             type="button"
             onClick={handleGoogleSignIn}
             disabled={loading}
@@ -88,7 +101,7 @@ const SignIn = () => {
               />
             </svg>
             {loading ? 'Signing in...' : 'Continue with Google'}
-          </button>
+          </Button>
         </div>
 
         <div className="flex items-center mb-6">
@@ -117,7 +130,7 @@ const SignIn = () => {
           />
 
           <div className="flex justify-between text-sm">
-            <Link href="/forgot-password" className="text-primary hover:underline">
+            <Link href="/auth/forgot-password" className="text-primary hover:underline">
               Forgot password?
             </Link>
             <Link href="/sign-up" className="text-primary hover:underline">

@@ -1,27 +1,27 @@
 import { create } from 'zustand';
 import { createJSONStorage, devtools, persist } from 'zustand/middleware';
 import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
   updateProfile,
   signOut,
   onAuthStateChanged,
   User,
+  signInWithCustomToken,
 } from 'firebase/auth';
 import { analytics, auth, firestore, performance } from '../../config/firebase.config';
-import { doc, getDoc, onSnapshot, setDoc, Timestamp, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, Timestamp, updateDoc } from 'firebase/firestore';
 import { uploadProfileImage } from '../../utils/uploadFiles';
 import { resetAllStores } from '../../utils/resetAllStores';
 import { fetchWithAppCheck } from '@/app/utils/generateAppCheckToken';
-import { getFCMToken, sendNotification } from '@/app/utils/getFCMToken';
-import { getIpAddress } from '@/app/utils/utils-client';
+import { getFCMToken, sendNotification } from '@/app/utils/fcm/fcm';
 import { trace } from 'firebase/performance';
 import { logEvent } from 'firebase/analytics';
+import { encryptJsonPayloadClient } from '@/app/utils/encrypt/encrypt';
 
 // Define the types for User data and store
 export interface CurrentUser {
+  preferredLanguage: string | null;
   displayName: string;
   email: string | null;
   emailVerified: boolean | null;
@@ -44,14 +44,14 @@ export interface CurrentUser {
 
 interface UserSignUpDataType {
   displayName: string;
-  email: string;
-  phoneNumber: string;
-  address: string;
-  hobbies: string[];
-  story: string;
-  currentOccupation: string;
-  vibe: string;
-  photoURL: string;
+  // email: string;
+  // phoneNumber: string;
+  // address: string;
+  // hobbies: string[];
+  // story: string;
+  // currentOccupation: string;
+  // vibe: string;
+  // photoURL: string;
 }
 
 export interface UserState {
@@ -72,16 +72,12 @@ export interface UserState {
     onSuccess?: () => void,
   ) => Promise<void>;
   signIn: (email: string, password: string, onSuccess?: () => void) => Promise<void>;
-  signInWithGoogle: (onSuccess?: () => void) => Promise<void>;
-  signUpWithGoogle: (onSuccess?: () => void) => Promise<void>;
-  runAfterSignIn: (user: User, onSuccess?: () => void) => Promise<void>;
-  runAfterSignUp: (
-    user: User,
-    userData: Omit<UserSignUpDataType, 'uid'>,
-    onSuccess?: () => void,
-  ) => Promise<void>;
+  signInWithGoogle: (customToken: string, onSuccess?: () => void) => Promise<void>;
+  // signUpWithGoogle: (onSuccess?: () => void) => Promise<void>;
+  runAfterSignIn: (user: User, userData: CurrentUser, onSuccess?: () => void) => Promise<void>;
+  runAfterSignUp: (user: User, userData: CurrentUser, onSuccess?: () => void) => Promise<void>;
   reloadUser: () => Promise<void>;
-  fetchUserData: (uid: string) => Promise<void>;
+  fetchUserData: (uid: string) => Promise<CurrentUser>;
   listenToUser: () => (() => void)[];
   reset: () => void;
   logoutUser: () => Promise<void>;
@@ -97,7 +93,7 @@ export const useUserStore = create<UserState>()(
         listeners: [],
         user: null,
         fcmToken: undefined,
-        setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
+        setHasHydrated: () => set({ _hasHydrated: true }),
         setUser: (user) => set({ user }),
         setFcmToken: (fcmToken: string) => set({ fcmToken }),
         reloadUser: async () => {
@@ -186,103 +182,116 @@ export const useUserStore = create<UserState>()(
         },
         // Sign-up function to create a new user and store it in Firestore
         signUp: async (email, password, userData, onSuccess?: () => void) => {
-          const { runAfterSignUp } = get();
-          const signUpTrace = trace(performance, 'sign_up_time');
+          const { runAfterSignUp, fcmToken, setFcmToken } = get();
+          // const signUpTrace = trace(performance, 'sign_up_with_custom_token_time');
 
           try {
-            signUpTrace.start();
-            const user: User = (await createUserWithEmailAndPassword(auth, email, password)).user;
-            await runAfterSignUp(user, userData, onSuccess);
-            logEvent(analytics, 'sign_up', { method: 'email_password' });
-          } catch (err) {
-            console.error('Error signing up:', err);
-            throw err;
-          } finally {
-            signUpTrace.stop();
-          }
-        },
-        signUpWithGoogle: async (onSuccess?: () => void) => {
-          const { runAfterSignUp } = get();
-          const googleSignUpTrace = trace(performance, 'google_sign_up_time');
+            // signUpTrace.start();
 
-          try {
-            googleSignUpTrace.start();
-            const user: User = (await signInWithPopup(auth, new GoogleAuthProvider())).user;
-            await runAfterSignUp(
-              user,
-              {
-                email: user?.email ?? '',
-                displayName: user?.displayName ?? '',
-                phoneNumber: user?.phoneNumber ?? '',
-                photoURL: user?.photoURL ?? '',
-                address: 'Update your address',
-                currentOccupation: 'Update',
-                vibe: 'What’s your vibe today? Spill the tea! ☕️🔥',
-                story: 'Share a bit about yourself, your passions, and what drives you! 💬✨',
-                hobbies: [],
-              },
-              onSuccess,
-            );
-            logEvent(analytics, 'sign_up', { method: 'google' });
-          } catch (err) {
-            console.error('Error google signing up:', err);
-            throw err;
-          } finally {
-            googleSignUpTrace.stop();
-          }
-        },
-        runAfterSignUp: async (user: User, userData, onSuccess?: () => void) => {
-          try {
-            const { fcmToken } = get();
-
-            const timestamp = Timestamp.now();
-            // Create the user document in Firestore with additional data
-            await setDoc(doc(firestore, 'Users', user.uid), {
-              ...userData,
-              ipAddress: await getIpAddress(),
-              lastUsedIpAddress: await getIpAddress(),
-              uid: user.uid,
-              createdAt: timestamp,
-              updatedAt: timestamp,
-            });
-
-            await fetchWithAppCheck(`/api/session/create`, await user.getIdToken(), {
-              method: 'POST',
-            });
-
+            // console.log('fcmToken: ', fcmToken);
             const updatedFcmToken = await getFCMToken(fcmToken, true);
+            const signUpBody: any = { email, password, ...userData };
 
             if (
               updatedFcmToken &&
               typeof updatedFcmToken === 'string' &&
               updatedFcmToken.trim() !== ''
             ) {
-              await fetchWithAppCheck('/api/fcm/subscribe-fcm', await user.getIdToken(), {
-                method: 'POST',
-                body: JSON.stringify({
-                  token: updatedFcmToken,
-                  topic: user?.uid,
-                }),
-              });
+              signUpBody['fcmTokens'] = [updatedFcmToken];
+              setFcmToken(updatedFcmToken);
             }
 
+            const signUpRes = await fetchWithAppCheck('/api/auth/sign-up', '', {
+              method: 'POST',
+              body: JSON.stringify({ encryptedData: await encryptJsonPayloadClient(signUpBody) }),
+            });
+
+            console.log('user sign-up : ', signUpRes);
+            const { message, customToken, error } = signUpRes;
+            var updatedUserData = signUpRes['userData'];
+
+            if (error) throw error;
+
+            const authUser = (await signInWithCustomToken(auth, customToken)).user;
+
+            // const user: User = (await createUserWithEmailAndPassword(auth, email, password)).user;
+            await runAfterSignUp(authUser, updatedUserData, onSuccess);
+            // logEvent(analytics, 'sign_up', { method: 'sign_up_with_custom_token_time' });
+          } catch (err) {
+            console.error('Error signing up:', err);
+            throw err;
+          } finally {
+            // signUpTrace.stop();
+          }
+        },
+        // signUpWithGoogle: async (onSuccess?: () => void) => {
+        //   const { runAfterSignUp } = get();
+        //   const googleSignUpTrace = trace(performance, 'google_sign_up_time');
+
+        //   try {
+        //     googleSignUpTrace.start();
+        //     const user: User = (await signInWithPopup(auth, new GoogleAuthProvider())).user;
+        //     if (onSuccess) onSuccess();
+        //     // await runAfterSignUp(
+        //     //   user,
+        //     //   {
+        //     //     email: user?.email ?? '',
+        //     //     displayName: user?.displayName ?? '',
+        //     //     phoneNumber: user?.phoneNumber ?? '',
+        //     //     photoURL: user?.photoURL ?? '',
+        //     //     address: 'Update your address',
+        //     //     currentOccupation: 'Update',
+        //     //     vibe: 'What’s your vibe today? Spill the tea! ☕️🔥',
+        //     //     story: 'Share a bit about yourself, your passions, and what drives you! 💬✨',
+        //     //     hobbies: [],
+        //     //   },
+        //     //   onSuccess,
+        //     // );
+        //     logEvent(analytics, 'sign_up', { method: 'google' });
+        //   } catch (err) {
+        //     console.error('Error google signing up:', err);
+        //     throw err;
+        //   } finally {
+        //     googleSignUpTrace.stop();
+        //   }
+        // },
+        runAfterSignUp: async (user: User, userData, onSuccess?: () => void) => {
+          try {
+            const { fcmToken } = get();
+
+            const timestamp = Timestamp.now();
+            // // Create the user document in Firestore with additional data
+            // await setDoc(doc(firestore, 'Users', user.uid), {
+            //   ...userData,
+            //   ipAddress: await getIpAddress(),
+            //   lastUsedIpAddress: await getIpAddress(),
+            //   uid: user.uid,
+            //   createdAt: timestamp,
+            //   updatedAt: timestamp,
+            // });
+
+            auth.languageCode = userData.preferredLanguage ?? 'hi';
+            // if (!user.emailVerified) {
+            //   await sendEmailVerification(user);
+            // }
             if (onSuccess) onSuccess();
 
             // Update Zustand store with new user data
             set({
               user: {
                 ...userData,
-                uid: user.uid,
-                email: user.email,
-                createdAt: timestamp,
-                updatedAt: timestamp,
-                emailVerified: user.emailVerified,
-                occupationHistory: {
-                  occupation: '',
-                  occupationUpdatedAt: timestamp,
-                },
-                photoURL: user.photoURL,
-                providerData: [],
+                // uid: user.uid,
+                // email: user.email,
+                // createdAt: timestamp,
+                // updatedAt: timestamp,
+                // emailVerified: user.emailVerified,
+                // occupationHistory: {
+                //   occupation: '',
+                //   occupationUpdatedAt: timestamp,
+                // },
+                // photoURL: user.photoURL,
+                // providerData: [],
+                // preferredLanguage: 'hi',
               },
               _hasHydrated: true,
             });
@@ -293,14 +302,41 @@ export const useUserStore = create<UserState>()(
         },
         // Sign-in function to authenticate the user
         signIn: async (email, password, onSuccess?: () => void) => {
-          const { runAfterSignIn } = get();
-          const signInTrace = trace(performance, 'sign_in_time');
+          const { runAfterSignIn, fcmToken, setFcmToken } = get();
+          const signInTrace = trace(performance, 'sign_in_with_custom_token_time');
           try {
             signInTrace.start();
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            await runAfterSignIn(userCredential.user, onSuccess);
-            logEvent(analytics, 'login', { method: 'email_password' });
-          } catch (err) {
+
+            // console.log('fcmToken: ', fcmToken);
+            const updatedFcmToken = await getFCMToken(fcmToken, true);
+            const signInBody: any = { email, password };
+
+            if (
+              updatedFcmToken &&
+              typeof updatedFcmToken === 'string' &&
+              updatedFcmToken.trim() !== ''
+            ) {
+              signInBody['fcmTokens'] = [updatedFcmToken];
+              setFcmToken(updatedFcmToken);
+            }
+
+            const signInRes = await fetchWithAppCheck('/api/auth/sign-in', '', {
+              method: 'POST',
+              body: JSON.stringify({ encryptedData: await encryptJsonPayloadClient(signInBody) }),
+            });
+
+            console.log('user sign-in : ', signInRes);
+            const { message, customToken, error, userData } = signInRes;
+
+            if (error) {
+              throw error;
+            }
+            const authUser = (await signInWithCustomToken(auth, customToken)).user;
+
+            // const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            await runAfterSignIn(authUser, userData, onSuccess);
+            // logEvent(analytics, 'login', { method: 'email_password' });
+          } catch (err: any) {
             console.error('Error signing in:', err);
             throw err;
           } finally {
@@ -308,53 +344,58 @@ export const useUserStore = create<UserState>()(
           }
         },
         // Sign-in function with Google authentication
-        signInWithGoogle: async (onSuccess?: () => void) => {
-          const { runAfterSignIn } = get();
-          const googleTrace = trace(performance, 'google_sign_in_time');
+        signInWithGoogle: async (customToken, onSuccess?: () => void) => {
+          const { runAfterSignIn, fetchUserData, reloadUser } = get();
+
+          // const googleTrace = trace(performance, 'google_sign_in_time');
 
           try {
-            googleTrace.start();
-            const result = await signInWithPopup(auth, new GoogleAuthProvider());
-            await runAfterSignIn(result.user, onSuccess);
+            // googleTrace.start();
+            const googleAuthUser = (await signInWithCustomToken(auth, customToken)).user;
+
+            await runAfterSignIn(
+              googleAuthUser,
+              await fetchUserData(googleAuthUser.uid),
+              onSuccess,
+            );
             logEvent(analytics, 'login', { method: 'google' });
+            await reloadUser();
           } catch (err) {
             console.error('Error signing in with Google:', err);
             throw err;
           } finally {
-            googleTrace.stop();
+            // googleTrace.stop();
           }
         },
-        runAfterSignIn: async (user: User, onSuccess?: () => void) => {
+        runAfterSignIn: async (user: User, userData, onSuccess?: () => void) => {
           try {
-            const { fetchUserData, fcmToken } = get();
-
-            // Fetch user data after Google sign-in
-            await fetchUserData(user.uid);
-
-            const idToken = await user.getIdToken();
-
-            await fetchWithAppCheck(`/api/session/create`, idToken ?? '', {
-              method: 'POST',
-            });
-
-            const updatedFcmToken = await getFCMToken(fcmToken, true);
-
-            if (
-              updatedFcmToken &&
-              typeof updatedFcmToken === 'string' &&
-              updatedFcmToken.trim() !== ''
-            ) {
-              await fetchWithAppCheck('/api/fcm/subscribe-fcm', idToken, {
-                method: 'POST',
-                body: JSON.stringify({
-                  token: updatedFcmToken,
-                  topic: user?.uid,
-                }),
-              });
-            }
-
+            auth.languageCode = userData.preferredLanguage ?? 'hi';
+            // if (!user.emailVerified) {
+            //   await sendEmailVerification(user);
+            // }
             if (onSuccess) onSuccess();
-            set({ _hasHydrated: true, fcmToken: updatedFcmToken ?? '' });
+            set({
+              user: {
+                uid: userData.uid,
+                email: userData.email || null,
+                displayName: userData.displayName || '',
+                emailVerified: userData.emailVerified || false,
+                phoneNumber: userData.phoneNumber || '',
+                address: userData.address || '',
+                hobbies: userData.hobbies || [],
+                story: userData.story || '',
+                currentOccupation: userData.currentOccupation || '',
+                occupationHistory: userData.occupationHistory,
+                vibe: userData.vibe || '',
+                photoURL: userData.photoURL || null,
+                providerData: userData.providerData || [],
+                createdAt: userData.createdAt,
+                updatedAt: userData.updatedAt,
+                preferredLanguage: userData.preferredLanguage,
+              },
+              //  fcmToken: updatedFcmToken ?? ''
+              _hasHydrated: true,
+            });
 
             // updateDoc(doc(firestore, `Users/${user.uid}`), {
             //   lastUsedIpAddress: await getIpAddress(),
@@ -372,26 +413,44 @@ export const useUserStore = create<UserState>()(
             const userDoc = await getDoc(doc(firestore, 'Users', uid));
             if (userDoc.exists()) {
               const userData = userDoc.data();
-              set({
-                user: {
-                  uid,
-                  email: userData.email || null,
-                  displayName: userData.displayName || '',
-                  emailVerified: userData.emailVerified || false,
-                  phoneNumber: userData.phoneNumber || '',
-                  address: userData.address || '',
-                  hobbies: userData.hobbies || [],
-                  story: userData.story || '',
-                  currentOccupation: userData.currentOccupation || '',
-                  occupationHistory: userData.occupationHistory,
-                  vibe: userData.vibe || '',
-                  photoURL: userData.photoURL || null,
-                  providerData: userData.providerData || [],
-                  createdAt: userData.createdAt,
-                  updatedAt: userData.updatedAt,
-                },
-                _hasHydrated: true,
-              });
+              // set({
+              //   user: {
+              //     uid,
+              //     email: userData.email || null,
+              //     displayName: userData.displayName || '',
+              //     emailVerified: userData.emailVerified || false,
+              //     phoneNumber: userData.phoneNumber || '',
+              //     address: userData.address || '',
+              //     hobbies: userData.hobbies || [],
+              //     story: userData.story || '',
+              //     currentOccupation: userData.currentOccupation || '',
+              //     occupationHistory: userData.occupationHistory,
+              //     vibe: userData.vibe || '',
+              //     photoURL: userData.photoURL || null,
+              //     providerData: userData.providerData || [],
+              //     createdAt: userData.createdAt,
+              //     updatedAt: userData.updatedAt,
+              //     preferredLanguage: userData.preferredLanguage,
+              //   },
+              // });
+              return {
+                uid,
+                email: userData.email || null,
+                displayName: userData.displayName || '',
+                emailVerified: userData.emailVerified || false,
+                phoneNumber: userData.phoneNumber || '',
+                address: userData.address || '',
+                hobbies: userData.hobbies || [],
+                story: userData.story || '',
+                currentOccupation: userData.currentOccupation || '',
+                occupationHistory: userData.occupationHistory,
+                vibe: userData.vibe || '',
+                photoURL: userData.photoURL || null,
+                providerData: userData.providerData || [],
+                createdAt: userData.createdAt,
+                updatedAt: userData.updatedAt,
+                preferredLanguage: userData.preferredLanguage,
+              };
             } else {
               console.log('No such user document!');
               throw 'No such user document!';
@@ -406,7 +465,12 @@ export const useUserStore = create<UserState>()(
           const unsubList: (() => void)[] = [];
           const authUnsub = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
-              await get().reloadUser();
+              const { reloadUser, user } = get();
+
+              await reloadUser();
+              if (user?.emailVerified != firebaseUser.emailVerified) {
+                user!.emailVerified = firebaseUser.emailVerified;
+              }
               const uid = firebaseUser.uid;
 
               const unsubscribe = onSnapshot(doc(firestore, 'Users', uid), (userDoc) => {
@@ -429,6 +493,7 @@ export const useUserStore = create<UserState>()(
                       providerData: userData.providerData || [],
                       createdAt: userData.createdAt,
                       updatedAt: userData.updatedAt,
+                      preferredLanguage: userData.preferredLanguage,
                     },
                   });
                 }
@@ -460,14 +525,12 @@ export const useUserStore = create<UserState>()(
             await Promise.all([
               fetchWithAppCheck(`/api/auth/logout`, (await auth.currentUser?.getIdToken()) ?? '', {
                 method: 'POST',
-                body: JSON.stringify({
-                  fcmToken: fcmToken,
-                  fcmTopics: [],
-                }),
+                body: JSON.stringify({ fcmToken: fcmToken }),
               }),
-              signOut(auth), // Firebase logout
               resetAllStores(),
+              signOut(auth), // Firebase logout
             ]);
+            localStorage.clear();
           } catch (err) {
             console.error('Error during logout:', err);
             throw err;
