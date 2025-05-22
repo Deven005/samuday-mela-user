@@ -1,12 +1,14 @@
 import Link from 'next/link';
 
-export default function ContactPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function ContactPage() {
   return (
     <div className="bg-gradient-to-br from-base-100 via-base-200 to-base-100 text-base-content px-6 py-12">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-10">
         {/* LEFT SIDE: Contact Info */}
         <div className="space-y-6 lg:col-span-1">
-          <div className="bg-gradient-to-r from-primary to-secondary rounded-lg flex items-center justify-center aspect-[2/1] text-white text-6xl font-bold">
+          <div className="bg-gradient-to-r from-primary to-secondary rounded-lg flex items-center justify-center aspect-[2/1] text-white text-6xl font-bold shadow-xl">
             ✉️
           </div>
           <h1 className="text-4xl md:text-5xl font-extrabold">Get in Touch</h1>
@@ -47,15 +49,21 @@ export default function ContactPage() {
         {/* RIGHT SIDE: Contact Form */}
         <div className="lg:col-span-2">
           <div className="card bg-base-200 p-6 rounded-2xl shadow-lg">
-            <form className="space-y-6">
+            {/* {success && <div className="alert alert-success mb-4">Message sent successfully!</div>} */}
+            {/* {error && <div className="alert alert-error mb-4">{decodeURIComponent(error)}</div>} */}
+
+            <form method="POST" action="/api/contact" className="space-y-6" spellCheck>
               <div>
                 <label className="label">
                   <span className="label-text font-semibold">Name</span>
                 </label>
                 <input
+                  name="name"
                   type="text"
                   placeholder="Your Name"
                   className="input input-bordered w-full"
+                  minLength={2}
+                  maxLength={50}
                   required
                 />
               </div>
@@ -64,6 +72,7 @@ export default function ContactPage() {
                   <span className="label-text font-semibold">Email</span>
                 </label>
                 <input
+                  name="email"
                   type="email"
                   placeholder="your@email.com"
                   className="input input-bordered w-full"
@@ -75,9 +84,12 @@ export default function ContactPage() {
                   <span className="label-text font-semibold">Message</span>
                 </label>
                 <textarea
+                  name="message"
                   className="textarea textarea-bordered w-full"
                   placeholder="Write your message here..."
                   rows={5}
+                  minLength={10}
+                  maxLength={500}
                   required
                 />
               </div>
