@@ -11,9 +11,8 @@ export default function LogoutButton() {
   const logoutClick = async () => {
     try {
       await logout();
-      router.replace('/sign-in');
       router.refresh();
-      localStorage.clear();
+      router.replace('/sign-in');
     } catch (error) {
       console.log('logoutClick: ', error);
     }
