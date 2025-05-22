@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
 import Image from 'next/image';
+import { Button } from '../components/Button/Button';
 
 const Posts = () => {
   const router = useRouter();
@@ -36,20 +37,20 @@ const Posts = () => {
     <div className="container mx-auto px-4 py-6 relative bg-base-100">
       {/* Add Post Button */}
       <div className="fixed bottom-6 right-6 z-50">
-        <button
+        <Button
           onClick={handleAddPostClick}
-          className="btn btn-primary btn-circle text-2xl shadow-lg hover:scale-105 transition-transform"
+          className="btn btn-circle text-2xl shadow-lg hover:scale-105 transition-transform text-base-content dark:bg-base-800"
           title="Add Post"
           aria-label="Add Post"
         >
           +
-        </button>
+        </Button>
       </div>
 
       {posts?.length === 0 ? (
         <div className="text-center text-base-content text-lg mt-10">No posts available.</div>
       ) : (
-        <StaggeredGrid columns={4} columnWidth={300} className="bg-base-100">
+        <StaggeredGrid columns={4} columnWidth={300} className="bg-base-100 text-base-content">
           {posts?.map((post, index) => {
             const currentIndex = mediaIndexes[post.postId] || 0;
             const currentMedia = post.mediaFiles[currentIndex];
