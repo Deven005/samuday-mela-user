@@ -3,6 +3,9 @@ import { DocumentData } from 'firebase-admin/firestore';
 import { serverAuth, serverFirestore } from '../config/firebase.server.config';
 import { cookies } from 'next/headers';
 import { MyNotification } from '../components/Notification/NotificationDropdown';
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
 
 export interface AppFeature {
   title: string;
@@ -43,6 +46,7 @@ export async function getAppData() {
 export async function getUserData() {
   try {
     const sessionCookie = (await cookies()).get('session')?.value;
+
     if (!sessionCookie) {
       user = undefined; // ✅ Reset user if no session exists
       return undefined;
@@ -107,4 +111,63 @@ export function formatLocalDate(date: Date, timeZone: string) {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(date);
+}
+
+export function rsaDecrypt(base64Data: string): string {
+  const privateKeyPath = path.resolve('keys/private.pem');
+  const privateKey = fs.readFileSync(privateKeyPath, 'utf8');
+
+  const passphrase = process.env.RSA_PRIVATE_KEY_PASSPHRASE;
+  if (!passphrase) throw new Error('RSA passphrase not set in environment');
+
+  const buffer = Buffer.from(base64Data, 'base64');
+  // openssl rsa -in private.pem -passin pass:publicPass -outform PEM -pubout -out public.pem
+  const decrypted = crypto.privateDecrypt(
+    {
+      key: privateKey,
+      passphrase,
+      padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+      oaepHash: 'sha256',
+    },
+    buffer,
+  );
+
+  return decrypted.toString('utf-8');
+}
+
+/**
+ * Encrypts a JS object using RSA (OAEP + SHA256)
+ * @param data Object to encrypt (e.g., { email, password })
+ * @returns base64-encoded encrypted string
+ */
+export function encryptJsonPayload(data: Record<string, any>): string {
+  const publicKeyPath = path.resolve('keys/public.pem'); // Ensure public.pem exists
+  const publicKey = fs.readFileSync(publicKeyPath, 'utf8');
+
+  const json = JSON.stringify(data);
+  const buffer = Buffer.from(json, 'utf-8');
+
+  const encrypted = crypto.publicEncrypt(
+    {
+      key: publicKey,
+      padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+      oaepHash: 'sha256',
+    },
+    buffer,
+  );
+
+  return encrypted.toString('base64');
+}
+
+export function removeUndefinedDeep(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(removeUndefinedDeep);
+  } else if (obj !== null && typeof obj === 'object') {
+    return Object.fromEntries(
+      Object.entries(obj)
+        .filter(([_, v]) => v !== undefined)
+        .map(([k, v]) => [k, removeUndefinedDeep(v)]),
+    );
+  }
+  return obj;
 }
