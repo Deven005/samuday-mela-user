@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import InputField from '@/app/components/Input/InputField';
 import TextAreaField from '@/app/components/Input/TextAreaField';
+import { Button } from '@/app/components/Button/Button';
 
 const EditProfile = () => {
   // const user = useUserStore(useShallow((state) => state.user));
@@ -19,7 +20,7 @@ const EditProfile = () => {
     email: user?.email || '',
     phoneNumber: user?.phoneNumber || '',
     address: user?.address || '',
-    hobbies: user?.hobbies.join(', ') || '',
+    hobbies: user?.hobbies && user.hobbies.length > 0 ? user?.hobbies : [],
     story: user?.story || '',
     currentOccupation: user?.currentOccupation || '',
     vibe: user?.vibe || '',
@@ -31,6 +32,7 @@ const EditProfile = () => {
     providerData: user?.providerData || [],
     createdAt: user?.createdAt ?? Timestamp.now(),
     updatedAt: Timestamp.now(),
+    preferredLanguage: user?.preferredLanguage ?? 'hi',
   });
 
   useEffect(() => {
@@ -43,7 +45,7 @@ const EditProfile = () => {
         email: user.email || '',
         phoneNumber: user.phoneNumber || '',
         address: user.address || '',
-        hobbies: user.hobbies.join(', ') || '',
+        hobbies: user?.hobbies && user.hobbies.length > 0 ? user?.hobbies : [],
         story: user.story || '',
         currentOccupation: user.currentOccupation || '',
         vibe: user.vibe || '',
@@ -55,6 +57,7 @@ const EditProfile = () => {
         providerData: user.providerData || [],
         createdAt: user.createdAt ?? Timestamp.now(),
         updatedAt: Timestamp.now(),
+        preferredLanguage: user.preferredLanguage ?? 'hi',
       });
     }
   }, [user]);
@@ -64,7 +67,7 @@ const EditProfile = () => {
       ...user,
       ...editedUser,
       hobbies: editedUser.hobbies
-        .split(',')
+        // .split(',')
         .map((h) => h.trim())
         .filter(Boolean),
       updatedAt: Timestamp.now(),
@@ -89,7 +92,14 @@ const EditProfile = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
 
-    setEditedUser((prev) => ({ ...prev, [id]: value }));
+    if (id === 'hobbies') {
+      setEditedUser((prev) => ({
+        ...prev,
+        hobbies: e.target.value.split(',').map((h: string) => h.trim()),
+      }));
+    } else {
+      setEditedUser((prev) => ({ ...prev, [id]: value }));
+    }
   };
 
   return (
@@ -148,11 +158,11 @@ const EditProfile = () => {
 
           <InputField
             id="hobbies"
-            label="Hobbies"
-            value={editedUser.hobbies}
-            onChange={handleChange}
-            // className="input input-bordered w-full"
+            label="Hobbies (comma separated)"
             placeholder="Hobbies (comma-separated)"
+            value={(editedUser?.hobbies ?? []).join(',')}
+            onChange={handleChange}
+            required
           />
 
           <TextAreaField
@@ -185,18 +195,18 @@ const EditProfile = () => {
 
         {/* Action Buttons */}
         <div className="flex justify-between mt-6">
-          <button
+          <Button
             onClick={handleSave}
-            className="btn btn-primary btn-lg w-1/2 rounded-md shadow-md hover:shadow-2xl"
+            className="btn btn-lg w-1/2 rounded-md shadow-md hover:shadow-2xl"
           >
             Save
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleCancel}
             className="btn btn-outline btn-lg w-1/2 rounded-md hover:bg-gray-200 ml-4 text-base-content hover:text-black"
           >
             Cancel
-          </button>
+          </Button>
         </div>
       </div>
     </div>
