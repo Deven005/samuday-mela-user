@@ -1,7 +1,7 @@
-// app/utils/getFCMToken.ts
+// app/utils/fcm.ts
 import { getToken } from 'firebase/messaging';
-import { auth, messaging } from '../config/firebase.config';
-import { fetchWithAppCheck } from './generateAppCheckToken';
+import { auth, messaging } from '../../config/firebase.config';
+import { fetchWithAppCheck } from '../generateAppCheckToken';
 
 interface SendNotificationType {
   topic: string;
@@ -31,6 +31,12 @@ export async function getFCMToken(
   forceNewToken?: boolean | undefined,
 ) {
   try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      console.warn('Notification permission not granted');
+      return;
+    }
+
     if (!swRegistration) {
       swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
       await navigator.serviceWorker.ready;
@@ -45,21 +51,6 @@ export async function getFCMToken(
       vapidKey: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_VAPID_KEY, // ✅ Stored securely in .env
       serviceWorkerRegistration: swRegistration,
     });
-
-    // await fetchWithAppCheck(
-    //   '/api/fcm/subscribe-fcm',
-    //   (await auth.currentUser?.getIdToken()) ?? '',
-    //   {
-    //     method: 'POST',
-    //     body: JSON.stringify({
-    //       token: newFcmToken,
-    //       topic: auth.currentUser?.uid,
-    //     }),
-    //     // headers: { 'Content-Type': 'application/json' },
-    //   },
-    // );
-
-    // return newFcmToken;
   } catch (error) {
     console.warn('Error getting FCM token:', error);
     // return new Error(`error fcm token : ${error}`);
