@@ -2,7 +2,12 @@ import { Analytics, getAnalytics, isSupported } from 'firebase/analytics';
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { initializeAppCheck, ReCaptchaV3Provider, AppCheck } from 'firebase/app-check';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import {
+  CACHE_SIZE_UNLIMITED,
+  Firestore,
+  initializeFirestore,
+  persistentLocalCache,
+} from 'firebase/firestore';
 import { getMessaging, Messaging } from 'firebase/messaging';
 import { FirebasePerformance, getPerformance } from 'firebase/performance';
 import { getStorage } from 'firebase/storage';
@@ -26,15 +31,26 @@ const firebaseConfig = {
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 // Initialize Firebase auth
 const auth = getAuth(app);
-const firestore = getFirestore(app);
+// const firestore = getFirestore(app);
+// ✅ Enable ignoreUndefinedProperties
 const storage = getStorage(app);
 
 let appCheck: AppCheck,
   performance: FirebasePerformance,
   messaging: Messaging,
-  analytics: Analytics;
+  analytics: Analytics,
+  firestore: Firestore;
 
 if (typeof window !== 'undefined') {
+  firestore = initializeFirestore(app, {
+    ignoreUndefinedProperties: true,
+    // ssl: true,
+    // cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+    localCache: persistentLocalCache({
+      // tabManager: { kind: 'PersistentMultipleTab' },
+      cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+    }),
+  });
   // Initialize App Check with ReCaptcha v3 provider
   appCheck = initializeAppCheck(app, {
     provider: new ReCaptchaV3Provider(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY as string),
