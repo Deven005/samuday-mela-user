@@ -40,9 +40,9 @@ export async function fetchWithAppCheck(
       headers,
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP Error: ${response.status}`);
-    }
+    // if (!response.ok) {
+    //   throw new Error(`HTTP Error: ${response.status} with ${response.statusText}`);
+    // }
 
     return response.json();
   } catch (error) {
