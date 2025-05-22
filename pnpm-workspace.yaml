@@ -1,4 +1,7 @@
 onlyBuiltDependencies:
   - '@firebase/util'
+  - '@tailwindcss/oxide'
   - '@vercel/speed-insights'
   - protobufjs
+  - sharp
+  - unrs-resolver
