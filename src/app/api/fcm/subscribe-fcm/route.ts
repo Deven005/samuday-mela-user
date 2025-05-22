@@ -1,6 +1,5 @@
 // api/fcm/subscribe-fcm
-import { serverMessaging } from '@/app/config/firebase.server.config';
-import { messaging } from 'firebase-admin';
+import { subscribeToFcmTopicServerSide } from '../../../utils/fcm/fcm-server';
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
@@ -11,32 +10,8 @@ export async function POST(req: Request) {
   }
 
   try {
-    const messSubscribe = await messaging().subscribeToTopic(token, topic);
-
-    if (messSubscribe.errors.length > 0) throw messSubscribe.errors;
-
-    const fcmRes = await serverMessaging.sendEach(
-      [
-        {
-          token,
-          notification: {
-            title: 'testing token',
-            body: 'testing token',
-          },
-        },
-        {
-          topic,
-          notification: {
-            title: 'testing topic',
-            body: 'testing topic',
-          },
-        },
-      ],
-      true,
-    );
-
-    if (fcmRes.failureCount > 0) throw fcmRes.responses.map((e) => e.error);
-
+    await subscribeToFcmTopicServerSide({ tokens: [token], topic });
+    await subscribeToFcmTopicServerSide({ tokens: [token], topic: 'global' });
     return NextResponse.json({ message: 'Subscribed to topic!', success: true }, { status: 200 });
   } catch (error) {
     console.error('Subscription error:', error);
