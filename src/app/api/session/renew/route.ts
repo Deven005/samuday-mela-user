@@ -1,4 +1,5 @@
 import { serverAuth } from '@/app/config/firebase.server.config';
+import { deleteSession } from '@/app/utils/auth/auth';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -21,16 +22,7 @@ export async function POST(req: NextRequest) {
         await serverAuth.verifySessionCookie(sessionCookie, true);
       } catch (error: any) {
         if (error.code === 'auth/session-cookie-expired') {
-          const sessionDeleteRes = await fetch(`${origin}/api/session/delete`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: req.headers.get('Authorization')?.replace('Bearer ', '') ?? '',
-            },
-          });
-          console.log('sessionDeleteRes: ', sessionDeleteRes);
-          console.log('sessionDeleteRes: ', sessionDeleteRes.ok);
-          console.log('sessionDeleteRes: ', await sessionDeleteRes.json());
+          await deleteSession({ idToken });
         }
       }
     }
