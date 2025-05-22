@@ -2,29 +2,16 @@
 import { useEffect } from 'react';
 import { fetchWithAppCheck } from '../utils/generateAppCheckToken';
 import { useUserStore } from '../stores/user/userStore';
-import { getFCMToken } from '../utils/getFCMToken';
+import { getFCMToken } from '../utils/fcm/fcm';
 import { auth, messaging } from '../config/firebase.config';
 import { onMessage } from 'firebase/messaging';
+import { useShallow } from 'zustand/shallow';
 
 const useFCM = () => {
-  const { setFcmToken, fcmToken, _hasHydrated, setHasHydrated, user } = useUserStore(
-    (state) => state,
-  );
+  const { setFcmToken, fcmToken, _hasHydrated, user } = useUserStore(useShallow((state) => state));
 
   useEffect(() => {
-    // ✅ Register service worker manually
-    // if ('serviceWorker' in navigator) {
-    //   navigator.serviceWorker
-    //     .register('/firebase-messaging-sw.js')
-    //     .then((registration) => {
-    //       console.log('Service Worker registered with scope:', registration.scope);
-    //     })
-    //     .catch((err) => {
-    //       console.error('Service Worker registration failed:', err);
-    //     });
-    // }
     async function fcmTokenUpdate() {
-      // await getFCMToken(fcmToken, true);
       return setInterval(
         async () => {
           const permission = await Notification.requestPermission();
@@ -36,6 +23,9 @@ const useFCM = () => {
           const currentToken = await getFCMToken(fcmToken, true);
 
           if (!currentToken || currentToken === '') throw Error('No token from fcm');
+
+          console.log('useFCM currentToken: ', currentToken);
+          console.log('useFCM fcmToken: ', fcmToken);
 
           if (currentToken && currentToken !== fcmToken) {
             if (user?.uid) {
@@ -125,17 +115,19 @@ const useFCM = () => {
     };
 
     setupFCM();
-    const unSubscribeFcm = onMessage(messaging, async (message) => {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted' && message.notification) {
-        const { title, body, icon, image } = message.notification;
-        new Notification(title ?? 'Notification!', { body: body, icon: icon ?? image });
-      }
-    });
 
-    return () => {
-      unSubscribeFcm();
-    };
+    if (messaging) {
+      const unSubscribeFcm = onMessage(messaging, async (message) => {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted' && message.notification) {
+          const { title, body, icon, image } = message.notification;
+          console.log('message.notification: ', message.notification);
+          new Notification(title ?? 'Notification!', { body: body, icon: icon ?? image });
+        }
+      });
+
+      return () => unSubscribeFcm();
+    }
   }, [user?.uid, _hasHydrated]);
 };
 
