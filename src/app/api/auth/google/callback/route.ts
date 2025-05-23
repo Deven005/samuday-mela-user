@@ -1,6 +1,5 @@
 import { serverAuth } from '@/app/config/firebase.server.config';
 import { createSession, generateStrongPassword, getOrCreateUser } from '@/app/utils/auth/auth';
-import { clearUserData, getUserData } from '@/app/utils/utils';
 import { google } from 'googleapis';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';

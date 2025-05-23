@@ -1,8 +1,7 @@
 // app/api/auth/sign-up/route.ts
-import { serverAuth, serverFirestore } from '@/app/config/firebase.server.config';
-import { createSession, createUser } from '@/app/utils/auth/auth';
-import { removeUndefinedDeep, rsaDecrypt } from '@/app/utils/utils';
-import { getIpAddress } from '@/app/utils/utils-client';
+import { serverAuth } from '@/app/config/firebase.server.config';
+import { createSession, getOrCreateUser } from '@/app/utils/auth/auth';
+import { rsaDecrypt } from '@/app/utils/utils';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -17,7 +16,7 @@ export async function POST(req: NextRequest) {
     if (!email || !password || !displayName)
       throw { message: 'Sign-up required details not provided!' };
 
-    const { userData } = await createUser({
+    const { userData } = (await getOrCreateUser({
       origin,
       properties: {
         email,
@@ -28,7 +27,7 @@ export async function POST(req: NextRequest) {
         )}&rounded=true`,
       },
       headers: req.headers,
-    });
+    }))!;
 
     const signInRes = await fetch(
       `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`,
