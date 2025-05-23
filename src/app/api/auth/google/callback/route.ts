@@ -32,7 +32,19 @@ export async function GET(req: NextRequest) {
     const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
     const userInfo = await oauth2.userinfo.get();
 
-    const { email, picture, name, verified_email } = userInfo.data;
+    const {
+      email,
+      picture,
+      name,
+      verified_email,
+      id,
+      gender,
+      link,
+      locale,
+      family_name,
+      given_name,
+      hd,
+    } = userInfo.data;
 
     let { user } = (await getOrCreateUser({
       origin,
@@ -44,7 +56,21 @@ export async function GET(req: NextRequest) {
         password: generateStrongPassword(), // Can be set to a temp password if needed
       },
       headers: req.headers,
-      providerId: 'google.com',
+      userProvider: {
+        email: email!,
+        photoURL: picture!,
+        displayName: name!,
+        providerId: 'google.com',
+        uid: id!,
+      },
+      userProviderData: {
+        gender,
+        link,
+        locale,
+        family_name,
+        given_name,
+        hd,
+      },
     }))!;
 
     const customToken = await serverAuth.createCustomToken(user!.uid, { user: true });
@@ -96,7 +122,6 @@ export async function GET(req: NextRequest) {
       httpOnly: true,
       secure: true,
       sameSite: 'lax',
-      path: '/',
       maxAge: 20, // expires in 20 seconds
     });
 
