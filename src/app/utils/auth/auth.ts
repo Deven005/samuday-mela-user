@@ -11,7 +11,7 @@ import {
   removeUndefinedDeep,
 } from '../utils';
 import { subscribeToFcmTopicServerSide } from '../fcm/fcm-server';
-import { CreateRequest } from 'firebase-admin/auth';
+import { CreateRequest, UserProvider, UserRecord } from 'firebase-admin/auth';
 
 interface SessionType {
   origin: string;
@@ -212,24 +212,26 @@ export function generateStrongPassword(length = 16): string {
   return shuffled;
 }
 
-export async function getOrCreateUser({ origin, properties, headers, providerId }: CreateUserType) {
+export async function getOrCreateUser({
+  origin,
+  properties,
+  headers,
+  userProvider,
+  userProviderData,
+}: CreateUserType) {
   try {
     // 🔍 Try to get existing Firebase user by email
-    const user = await serverAuth.getUserByEmail(properties.email!);
-    if (
-      providerId &&
-      providerId !== '' &&
-      !user.providerData.some((p) => p.providerId === providerId)
-    ) {
-      await serverAuth.updateUser(user.uid, {
-        providerToLink: {
-          providerId,
-          uid: user.uid,
-          displayName: user.displayName,
-          email: user.email,
-          phoneNumber: user.phoneNumber,
-        },
-      });
+    let user: UserRecord;
+    if (properties.email) {
+      user = await serverAuth.getUserByEmail(properties.email!);
+    } else {
+      user = await serverAuth.getUser(properties.uid!);
+    }
+    if (userProvider && !user.providerData.some((p) => p.providerId === userProvider.providerId)) {
+      await serverAuth.updateUser(user.uid, { providerToLink: userProvider });
+      await serverFirestore
+        .doc(`Users/${user.uid}`)
+        .update(removeUndefinedDeep({ ...user, ...userProviderData }), { exists: true });
     }
     return { user };
   } catch (error: any) {
@@ -239,20 +241,10 @@ export async function getOrCreateUser({ origin, properties, headers, providerId 
 
       if (firebaseError.code === 'auth/user-not-found') {
         const user = await serverAuth.createUser(properties);
-        if (providerId && providerId !== '') {
-          await serverAuth.updateUser(user.uid, {
-            providerToLink: {
-              providerId,
-              uid: user.uid,
-              displayName: user.displayName,
-              email: user.email,
-              phoneNumber: user.phoneNumber,
-              photoURL: user.photoURL,
-            },
-          });
-        }
-        await serverAuth.setCustomUserClaims(user.uid, { user: true });
 
+        if (userProvider) {
+          await serverAuth.updateUser(user.uid, { providerToLink: userProvider });
+        }
         const userData = {
           ...removeUndefinedDeep((await serverAuth.getUser(user.uid)).toJSON()),
           story: 'Share a bit about yourself, your passions, and what drives you! 💬✨',
@@ -266,7 +258,11 @@ export async function getOrCreateUser({ origin, properties, headers, providerId 
               '192.168.100.100'
             : headers.get('x-forwarded-for')?.toString().split(',')[0] || null,
         };
-        await serverFirestore.doc(`Users/${user.uid}`).create(userData);
+        await serverAuth.setCustomUserClaims(user.uid, { user: true });
+
+        await serverFirestore
+          .doc(`Users/${user.uid}`)
+          .create(removeUndefinedDeep({ ...userData, ...userProviderData }));
         return { user, userData };
       }
     } else {
@@ -288,5 +284,15 @@ interface CreateUserType {
   origin: string;
   properties: CreateRequest;
   headers: Headers;
-  providerId?: string;
+  userProvider?: UserProvider;
+  userProviderData?: UserProviderType;
+}
+
+interface UserProviderType {
+  gender: string | null | undefined;
+  link: string | null | undefined;
+  locale: string | null | undefined;
+  family_name: string | null | undefined;
+  given_name: string | null | undefined;
+  hd: string | null | undefined;
 }

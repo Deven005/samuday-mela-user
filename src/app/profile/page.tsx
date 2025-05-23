@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useUserStore } from '../stores/user/userStore';
 import { useShallow } from 'zustand/shallow';
 import { usePostStore } from '../stores/post/postStore';
@@ -9,16 +9,18 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '../components/Button/Button';
 import LanguageSelector from '../components/languageSelector';
+import { auth } from '../config/firebase.config';
+import { unlink } from 'firebase/auth';
 
 const UserProfile = () => {
   const user = useUserStore(useShallow((state) => state.user));
   const posts = usePostStore(useShallow((state) => state.posts));
   const updateUserProfilePic = useUserStore((state) => state.updateUserProfilePic);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [mediaIndexes, setMediaIndexes] = useState<Record<string, number>>({});
   const otherUsers = useOtherUserStore(useShallow((state) => state.otherUsers));
+  const [linkedProviders, setLinkedProviders] = useState<string[]>([]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -34,11 +36,31 @@ const UserProfile = () => {
     }
   };
 
-  const profileImage = user?.photoURL
-    ? user.photoURL
-    : `https://ui-avatars.com/api/?name=${encodeURIComponent(
-        user?.displayName || 'User',
-      )}&rounded=true`;
+  useEffect(() => {
+    if (user) {
+      setLinkedProviders(user.providerData.map((p) => p.providerId));
+    }
+  }, [user]);
+
+  const handleUnlink = async (providerId: string) => {
+    const currentUser = auth.currentUser;
+
+    if (!currentUser) return;
+
+    if (linkedProviders.length <= 1) {
+      alert("You can't unlink the only linked provider.");
+      return;
+    }
+
+    try {
+      await unlink(currentUser, providerId);
+      setLinkedProviders(currentUser.providerData.map((p) => p.providerId));
+      alert(`Successfully unlinked ${providerId}.`);
+    } catch (error) {
+      console.error('Error unlinking provider:', error);
+      alert('Failed to unlink provider.');
+    }
+  };
 
   const handleMediaChange = (postId: string, direction: 'prev' | 'next', total: number) => {
     setMediaIndexes((prev) => {
@@ -66,7 +88,7 @@ const UserProfile = () => {
                   loading="eager"
                   height={100}
                   width={100}
-                  src={profileImage}
+                  src={user.photoURL}
                   fetchPriority="high"
                   className="w-20 h-20 rounded-full object-cover border-2 border-primary"
                   alt="Profile"
@@ -120,6 +142,23 @@ const UserProfile = () => {
               <strong className="text-base-content">Vibe:</strong> {user.vibe || 'N/A'}
             </p>
             <LanguageSelector />
+            <div className="mt-4">
+              <h3 className="text-lg font-semibold text-base-content mb-2">Linked Accounts</h3>
+              <ul className="space-y-2">
+                {linkedProviders.map((providerId) => (
+                  <li key={providerId} className="flex items-center justify-between">
+                    <span className="capitalize">{providerId.replace('.com', '')}</span>
+                    <Button
+                      className="btn btn-sm btn-error"
+                      onClick={() => handleUnlink(providerId)}
+                      disabled={linkedProviders.length <= 1}
+                    >
+                      Unlink
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
             <Link href="/profile/edit">
               <div className="mt-3 mb-3">
                 <Button

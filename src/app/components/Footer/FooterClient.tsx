@@ -4,6 +4,7 @@ import useFCM from '@/app/hooks/useFCM';
 import { useUserStore } from '@/app/stores/user/userStore';
 import { browserLocalPersistence } from 'firebase/auth';
 import { useEffect } from 'react';
+import { ToastContainer } from 'react-toastify';
 import { useShallow } from 'zustand/shallow';
 
 const FooterClient = () => {
@@ -20,7 +21,11 @@ const FooterClient = () => {
     auth.setPersistence(browserLocalPersistence).then();
   }, []);
 
-  return <></>;
+  return (
+    <>
+      <ToastContainer />
+    </>
+  );
 };
 
 export default FooterClient;

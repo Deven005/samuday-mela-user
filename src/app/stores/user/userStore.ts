@@ -8,6 +8,7 @@ import {
   onAuthStateChanged,
   User,
   signInWithCustomToken,
+  UserInfo,
 } from 'firebase/auth';
 import { analytics, auth, firestore, performance } from '../../config/firebase.config';
 import { doc, getDoc, onSnapshot, Timestamp, updateDoc } from 'firebase/firestore';
@@ -36,8 +37,8 @@ export interface CurrentUser {
   };
   vibe: string;
   uid: string;
-  photoURL: string | null;
-  providerData: [];
+  photoURL: string;
+  providerData: UserInfo[];
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -73,6 +74,7 @@ export interface UserState {
   ) => Promise<void>;
   signIn: (email: string, password: string, onSuccess?: () => void) => Promise<void>;
   signInWithGoogle: (customToken: string, onSuccess?: () => void) => Promise<void>;
+  signInWithFacebook: (customToken: string, onSuccess?: () => void) => Promise<void>;
   // signUpWithGoogle: (onSuccess?: () => void) => Promise<void>;
   runAfterSignIn: (user: User, userData: CurrentUser, onSuccess?: () => void) => Promise<void>;
   runAfterSignUp: (user: User, userData: CurrentUser, onSuccess?: () => void) => Promise<void>;
@@ -367,6 +369,29 @@ export const useUserStore = create<UserState>()(
             // googleTrace.stop();
           }
         },
+        signInWithFacebook: async (customToken, onSuccess?: () => void) => {
+          const { runAfterSignIn, fetchUserData, reloadUser } = get();
+
+          // const googleTrace = trace(performance, 'google_sign_in_time');
+
+          try {
+            // googleTrace.start();
+            const facebookAuthUser = (await signInWithCustomToken(auth, customToken)).user;
+
+            await runAfterSignIn(
+              facebookAuthUser,
+              await fetchUserData(facebookAuthUser.uid),
+              onSuccess,
+            );
+            logEvent(analytics, 'login', { method: 'facebook' });
+            await reloadUser();
+          } catch (err) {
+            console.error('Error signing in with Google:', err);
+            throw err;
+          } finally {
+            // googleTrace.stop();
+          }
+        },
         runAfterSignIn: async (user: User, userData, onSuccess?: () => void) => {
           try {
             auth.languageCode = userData.preferredLanguage ?? 'hi';
@@ -387,7 +412,7 @@ export const useUserStore = create<UserState>()(
                 currentOccupation: userData.currentOccupation || '',
                 occupationHistory: userData.occupationHistory,
                 vibe: userData.vibe || '',
-                photoURL: userData.photoURL || null,
+                photoURL: userData.photoURL,
                 providerData: userData.providerData || [],
                 createdAt: userData.createdAt,
                 updatedAt: userData.updatedAt,

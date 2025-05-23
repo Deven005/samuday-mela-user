@@ -55,6 +55,17 @@ const SignIn = () => {
     }
   };
 
+  const handleFacebookSignIn = async () => {
+    const FACEBOOK_APP_ID = process.env.NEXT_PUBLIC_FB_APP_ID!;
+    const REDIRECT_URI = 'http://localhost:3000/api/auth/facebook/callback';
+
+    // const loginUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=fb-login&scope=email,public_profile`;
+
+    const login = `https://www.facebook.com/v22.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=fb-login`;
+
+    router.replace(login);
+  };
+
   return user || !_hasHydrated ? (
     <div className="flex justify-center items-center bg-base-100 dark:bg-base-900 p-4 ">
       <p className="text-base-content">Loading</p>
@@ -71,15 +82,34 @@ const SignIn = () => {
         )}
 
         {/* Google Sign-In Button */}
-        <div className="mb-6">
+        <div className="flex flex-col gap-3 mb-6">
+          <Button
+            type="button"
+            onClick={handleFacebookSignIn}
+            disabled={loading}
+            className={`btn w-full gap-2 ${
+              loading
+                ? 'btn-disabled'
+                : 'bg-[#1877F2] text-white hover:bg-[#166fe5] dark:bg-[#1877F2] dark:hover:bg-[#166fe5] transition-colors'
+            }`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 32 32"
+              fill="currentColor"
+              className="w-5 h-5 text-white"
+            >
+              <path d="M29 0H3C1.3 0 0 1.3 0 3v26c0 1.7 1.3 3 3 3h13.6v-11h-3.7v-4.3h3.7v-3.2c0-3.7 2.2-5.7 5.5-5.7 1.6 0 3.1.1 3.5.2v4h-2.4c-1.9 0-2.3.9-2.3 2.2v2.9h4.6l-.6 4.3h-4v11H29c1.7 0 3-1.3 3-3V3c0-1.7-1.3-3-3-3z" />
+            </svg>
+            {loading ? 'Signing in...' : 'Continue with Facebook'}
+          </Button>
+
           <Button
             type="button"
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className={`btn btn-outline w-full gap-2 ${
-              loading
-                ? 'btn-disabled'
-                : 'hover:bg-base-100 dark:hover:bg-base-700 transition-colors'
+            className={`btn w-full gap-2 border border-gray-300 bg-white text-gray-800 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:hover:bg-gray-800 transition-colors ${
+              loading ? 'btn-disabled' : ''
             }`}
           >
             <svg className="w-5 h-5" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg">

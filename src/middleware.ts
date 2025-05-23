@@ -17,6 +17,7 @@ const PUBLIC_PATHS = [
   '/faq',
   '/keys/public.pem',
   '/auth/google/callback',
+  '/auth/facebook/callback',
 ];
 const ROOT_PATH = '/';
 
