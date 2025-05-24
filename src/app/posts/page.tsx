@@ -34,7 +34,7 @@ const Posts = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6 relative bg-base-100">
+    <div className="container mx-auto px-4 relative bg-base-200 text-base-content py-12 mt-auto border-t border-base-300 transition-colors duration-300">
       {/* Add Post Button */}
       <div className="fixed bottom-6 right-6 z-50">
         <Button

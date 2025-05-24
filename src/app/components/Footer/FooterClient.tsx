@@ -22,9 +22,7 @@ const FooterClient = () => {
   }, []);
 
   return (
-    <>
-      <ToastContainer />
-    </>
+    <div className="bg-base-200 text-base-content py-12 mt-auto border-t border-base-300 transition-colors duration-300"></div>
   );
 };
 

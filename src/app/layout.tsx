@@ -8,6 +8,7 @@ import './globals.css';
 import Footer from './components/Footer/Footer';
 import Header from './components/Header';
 import { getAppData } from './utils/utils';
+import { ToastContainer } from 'react-toastify';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -89,6 +90,7 @@ export default async function RootLayout({
         <main className="bg-base-100">{children}</main>
         <Footer appData={appData} />
 
+        <ToastContainer />
         <Analytics />
         <SpeedInsights />
       </body>
