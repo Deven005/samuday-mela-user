@@ -6,6 +6,7 @@ import { cookies } from 'next/headers';
 import {
   clearUserData,
   formatLocalDate,
+  generateUsernameSlug,
   getDistanceFromLatLonInKm,
   getUserData,
   removeUndefinedDeep,
@@ -260,9 +261,13 @@ export async function getOrCreateUser({
         };
         await serverAuth.setCustomUserClaims(user.uid, { user: true });
 
-        await serverFirestore
-          .doc(`Users/${user.uid}`)
-          .create(removeUndefinedDeep({ ...userData, ...userProviderData }));
+        await serverFirestore.doc(`Users/${user.uid}`).create(
+          removeUndefinedDeep({
+            ...userData,
+            ...userProviderData,
+            slug: `${generateUsernameSlug(user.displayName!)}-${user.uid.slice(0, 4)}-${user.uid.slice(-4)}`,
+          }),
+        );
         return { user, userData };
       }
     } else {

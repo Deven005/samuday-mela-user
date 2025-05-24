@@ -10,12 +10,13 @@ import Image from 'next/image';
 import { Button } from '../components/Button/Button';
 import LanguageSelector from '../components/languageSelector';
 import { auth } from '../config/firebase.config';
-import { unlink } from 'firebase/auth';
+import { fetchWithAppCheck } from '../utils/generateAppCheckToken';
+import { encryptJsonPayloadClient } from '../utils/encrypt/encrypt';
+import { showCustomToast } from '../components/showCustomToast';
 
 const UserProfile = () => {
-  const user = useUserStore(useShallow((state) => state.user));
+  const { user, updateUserProfilePic, reloadUser } = useUserStore(useShallow((state) => state));
   const posts = usePostStore(useShallow((state) => state.posts));
-  const updateUserProfilePic = useUserStore((state) => state.updateUserProfilePic);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [mediaIndexes, setMediaIndexes] = useState<Record<string, number>>({});
@@ -37,28 +38,36 @@ const UserProfile = () => {
   };
 
   useEffect(() => {
-    if (user) {
-      setLinkedProviders(user.providerData.map((p) => p.providerId));
-    }
+    if (user) setLinkedProviders(user.providerData.map((p) => p.providerId));
   }, [user]);
 
   const handleUnlink = async (providerId: string) => {
-    const currentUser = auth.currentUser;
-
-    if (!currentUser) return;
-
-    if (linkedProviders.length <= 1) {
-      alert("You can't unlink the only linked provider.");
-      return;
-    }
-
     try {
-      await unlink(currentUser, providerId);
-      setLinkedProviders(currentUser.providerData.map((p) => p.providerId));
-      alert(`Successfully unlinked ${providerId}.`);
-    } catch (error) {
-      console.error('Error unlinking provider:', error);
-      alert('Failed to unlink provider.');
+      const currentUser = auth.currentUser;
+
+      if (!currentUser) return;
+
+      const res = await fetchWithAppCheck(
+        `/api/user/unlink-provider`,
+        (await auth.currentUser?.getIdToken()) ?? '',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            encryptedData: await encryptJsonPayloadClient({ providerIds: [providerId] }),
+          }),
+        },
+      );
+
+      if (res['message'].includes('Provider unlinked')) {
+        showCustomToast({ title: 'Update', message: res['message'], type: 'success' });
+        await reloadUser();
+      }
+    } catch (error: any) {
+      showCustomToast({
+        title: 'Error',
+        message: error.message ?? 'Something is wrong',
+        type: 'error',
+      });
     }
   };
 
@@ -160,14 +169,12 @@ const UserProfile = () => {
               </ul>
             </div>
             <Link href="/profile/edit">
-              <div className="mt-3 mb-3">
-                <Button
-                  variant="primary"
-                  className="btn btn-primary transition duration-200 hover:scale-105 cursor-pointer"
-                >
-                  Edit Profile
-                </Button>
-              </div>
+              <Button
+                variant="primary"
+                className="mt-3 mb-3 btn btn-primary transition duration-200 hover:scale-105 cursor-pointer"
+              >
+                Edit Profile
+              </Button>
             </Link>
           </div>
         </div>

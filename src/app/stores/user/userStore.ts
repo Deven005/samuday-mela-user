@@ -1,8 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, devtools, persist } from 'zustand/middleware';
 import {
-  GoogleAuthProvider,
-  signInWithPopup,
   updateProfile,
   signOut,
   onAuthStateChanged,
@@ -31,10 +29,6 @@ export interface CurrentUser {
   hobbies: string[];
   story: string;
   currentOccupation: string;
-  occupationHistory: {
-    occupation: string;
-    occupationUpdatedAt: Timestamp;
-  };
   vibe: string;
   uid: string;
   photoURL: string;
@@ -115,8 +109,8 @@ export const useUserStore = create<UserState>()(
           if (!updatedUser?.uid) return; // If there's no UID, don't update.
 
           try {
-            let photoURL = updatedUser.photoURL || '';
-            // let thumbnailURL = updatedUser.thumbnailURL || "";
+            let photoURL = updatedUser.photoURL ?? '';
+            // let thumbnailURL = updatedUser.thumbnailURL ?? "";
 
             // Upload new profile image if available
             const uploaded = await uploadProfileImage(profileImageFile, updatedUser.uid);
@@ -287,10 +281,6 @@ export const useUserStore = create<UserState>()(
                 // createdAt: timestamp,
                 // updatedAt: timestamp,
                 // emailVerified: user.emailVerified,
-                // occupationHistory: {
-                //   occupation: '',
-                //   occupationUpdatedAt: timestamp,
-                // },
                 // photoURL: user.photoURL,
                 // providerData: [],
                 // preferredLanguage: 'hi',
@@ -402,18 +392,17 @@ export const useUserStore = create<UserState>()(
             set({
               user: {
                 uid: userData.uid,
-                email: userData.email || null,
-                displayName: userData.displayName || '',
-                emailVerified: userData.emailVerified || false,
-                phoneNumber: userData.phoneNumber || '',
-                address: userData.address || '',
-                hobbies: userData.hobbies || [],
-                story: userData.story || '',
-                currentOccupation: userData.currentOccupation || '',
-                occupationHistory: userData.occupationHistory,
-                vibe: userData.vibe || '',
+                email: userData.email ?? null,
+                displayName: userData.displayName ?? '',
+                emailVerified: userData.emailVerified ?? false,
+                phoneNumber: userData.phoneNumber ?? '',
+                address: userData.address ?? '',
+                hobbies: userData.hobbies ?? [],
+                story: userData.story ?? '',
+                currentOccupation: userData.currentOccupation ?? '',
+                vibe: userData.vibe ?? '',
                 photoURL: userData.photoURL,
-                providerData: userData.providerData || [],
+                providerData: userData.providerData ?? [],
                 createdAt: userData.createdAt,
                 updatedAt: userData.updatedAt,
                 preferredLanguage: userData.preferredLanguage,
@@ -438,43 +427,22 @@ export const useUserStore = create<UserState>()(
             const userDoc = await getDoc(doc(firestore, 'Users', uid));
             if (userDoc.exists()) {
               const userData = userDoc.data();
-              // set({
-              //   user: {
-              //     uid,
-              //     email: userData.email || null,
-              //     displayName: userData.displayName || '',
-              //     emailVerified: userData.emailVerified || false,
-              //     phoneNumber: userData.phoneNumber || '',
-              //     address: userData.address || '',
-              //     hobbies: userData.hobbies || [],
-              //     story: userData.story || '',
-              //     currentOccupation: userData.currentOccupation || '',
-              //     occupationHistory: userData.occupationHistory,
-              //     vibe: userData.vibe || '',
-              //     photoURL: userData.photoURL || null,
-              //     providerData: userData.providerData || [],
-              //     createdAt: userData.createdAt,
-              //     updatedAt: userData.updatedAt,
-              //     preferredLanguage: userData.preferredLanguage,
-              //   },
-              // });
               return {
                 uid,
-                email: userData.email || null,
-                displayName: userData.displayName || '',
-                emailVerified: userData.emailVerified || false,
-                phoneNumber: userData.phoneNumber || '',
-                address: userData.address || '',
-                hobbies: userData.hobbies || [],
-                story: userData.story || '',
-                currentOccupation: userData.currentOccupation || '',
-                occupationHistory: userData.occupationHistory,
-                vibe: userData.vibe || '',
-                photoURL: userData.photoURL || null,
-                providerData: userData.providerData || [],
+                email: userData.email ?? null,
+                displayName: userData.displayName ?? '',
+                emailVerified: userData.emailVerified ?? false,
+                phoneNumber: userData.phoneNumber ?? '',
+                address: userData.address ?? '',
+                hobbies: userData.hobbies ?? [],
+                story: userData.story ?? '',
+                currentOccupation: userData.currentOccupation ?? '',
+                vibe: userData.vibe ?? '',
+                photoURL: userData.photoURL ?? null,
+                providerData: userData.providerData ?? [],
                 createdAt: userData.createdAt,
                 updatedAt: userData.updatedAt,
-                preferredLanguage: userData.preferredLanguage,
+                preferredLanguage: userData.preferredLanguage ?? 'hi',
               };
             } else {
               console.log('No such user document!');
@@ -504,18 +472,17 @@ export const useUserStore = create<UserState>()(
                   set({
                     user: {
                       uid,
-                      email: userData.email || null,
-                      displayName: userData.displayName || '',
-                      emailVerified: userData.emailVerified || false,
-                      phoneNumber: userData.phoneNumber || '',
-                      address: userData.address || '',
-                      hobbies: userData.hobbies || [],
-                      story: userData.story || '',
-                      currentOccupation: userData.currentOccupation || '',
-                      occupationHistory: userData.occupationHistory || {},
-                      vibe: userData.vibe || '',
-                      photoURL: userData.photoURL || null,
-                      providerData: userData.providerData || [],
+                      email: userData.email ?? null,
+                      displayName: userData.displayName ?? '',
+                      emailVerified: userData.emailVerified ?? false,
+                      phoneNumber: userData.phoneNumber ?? '',
+                      address: userData.address ?? '',
+                      hobbies: userData.hobbies ?? [],
+                      story: userData.story ?? '',
+                      currentOccupation: userData.currentOccupation ?? '',
+                      vibe: userData.vibe ?? '',
+                      photoURL: userData.photoURL ?? null,
+                      providerData: userData.providerData ?? [],
                       createdAt: userData.createdAt,
                       updatedAt: userData.updatedAt,
                       preferredLanguage: userData.preferredLanguage,
