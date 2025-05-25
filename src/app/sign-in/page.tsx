@@ -57,7 +57,8 @@ const SignIn = () => {
 
   const handleFacebookSignIn = async () => {
     const FACEBOOK_APP_ID = process.env.NEXT_PUBLIC_FB_APP_ID!;
-    const REDIRECT_URI = 'http://localhost:3000/api/auth/facebook/callback';
+    const domain = typeof window !== 'undefined' ? window.location.origin : '';
+    const REDIRECT_URI = `${domain}/api/auth/facebook/callback`;
 
     // const loginUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=fb-login&scope=email,public_profile`;
 
