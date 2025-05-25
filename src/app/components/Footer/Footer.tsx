@@ -9,17 +9,19 @@ interface FooterPropType {
 
 const Footer = async ({ appData }: FooterPropType) => {
   const user = await getUserData();
+  const year = new Date().getFullYear();
+
   return (
     <footer className="bg-base-200 text-base-content py-12 mt-auto border-t border-base-300 transition-colors duration-300">
       <FooterClient />
       <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-start justify-between gap-12">
-        {/* 🔥 Welcome / App Info */}
+        {/* 🚀 Welcome or Dashboard CTA */}
         <div className="text-center md:text-left max-w-md">
           <h3 className="text-3xl font-extrabold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-500 text-transparent bg-clip-text">
-            {user ? '👋 Hey there!' : `🚀 Welcome to ${appData?.appName}`}
+            {user ? '👋 Hey there!' : `🚀 Welcome to ${appData?.appName || 'YourCommunity'}`}
           </h3>
           <p className="mt-3 text-sm text-base-content/70">
-            {appData?.description || 'Join challenges, meet creators, and spark your creativity.'}
+            {appData?.description || 'Empowering creativity, connection, and collaboration.'}
           </p>
           <Link
             href={user ? '/' : '/join'}
@@ -29,7 +31,7 @@ const Footer = async ({ appData }: FooterPropType) => {
           </Link>
         </div>
 
-        {/* 🌍 Explore */}
+        {/* 🌐 Explore Pages */}
         <div className="text-center md:text-left">
           <h4 className="text-lg font-semibold mb-3">Explore 🌐</h4>
           <ul className="space-y-2 text-sm">
@@ -39,20 +41,41 @@ const Footer = async ({ appData }: FooterPropType) => {
                   href={`/${page}`}
                   className="hover:text-primary hover:underline transition duration-150"
                 >
-                  {page.charAt(0).toUpperCase() + page.slice(1).replace('-', ' ')}
+                  {page.charAt(0).toUpperCase() + page.slice(1)}
                 </Link>
               </li>
             ))}
           </ul>
         </div>
 
-        {/* 📲 Social & Updates */}
+        {/* 🛡️ Legal & Trust */}
         <div className="text-center md:text-left">
-          <h4 className="text-lg font-semibold mb-2">📢 Stay Connected</h4>
+          <h4 className="text-lg font-semibold mb-3">Legal & Policies 📜</h4>
+          <ul className="space-y-2 text-sm">
+            {[
+              { href: '/legal/privacy', text: 'Privacy Policy' },
+              { href: '/legal/terms', text: 'Terms & Conditions' },
+              { href: '/legal/refund', text: 'Refund & Cancellation' },
+              { href: '/legal/community', text: 'Community Guidelines' },
+              { href: '/legal/cookies', text: 'Cookie Policy' },
+            ].map((item) => (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className="hover:text-primary hover:underline transition duration-150"
+                >
+                  {item.text}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* 📱 Social + User Updates */}
+        <div className="text-center md:text-left">
+          <h4 className="text-lg font-semibold mb-2">📲 Stay Connected</h4>
           <p className="text-sm text-base-content/70">
-            {user
-              ? 'Check your latest updates and competitions.'
-              : 'Follow us for daily inspo & updates!'}
+            {user ? 'Check your updates and messages.' : 'Follow us for latest news!'}
           </p>
           {user && (
             <Link
@@ -62,8 +85,7 @@ const Footer = async ({ appData }: FooterPropType) => {
               View Updates
             </Link>
           )}
-          {/* Social buttons using unique emojis */}
-          <div className="flex gap-4 mt-3">
+          <div className="flex gap-4 mt-3 justify-center md:justify-start">
             {[
               {
                 name: 'Instagram',
@@ -79,13 +101,6 @@ const Footer = async ({ appData }: FooterPropType) => {
                 className:
                   'mask mask-squircle w-10 h-10 bg-gradient-to-br from-sky-500 to-blue-700 flex items-center justify-center',
               },
-              // {
-              //   name: 'TikTok',
-              //   link: 'https://tiktok.com',
-              //   label: 'TT',
-              //   className:
-              //     'mask mask-hexagon w-10 h-10 bg-black flex items-center justify-center',
-              // },
               {
                 name: 'Twitter',
                 link: 'https://twitter.com',
@@ -109,8 +124,7 @@ const Footer = async ({ appData }: FooterPropType) => {
 
       {/* 📄 Footer Bottom */}
       <div className="mt-10 pt-4 text-center text-sm text-base-content/60 border-t border-base-300">
-        &copy; {new Date().getFullYear()} <strong>{appData?.appName || 'YourCommunity'}</strong>.
-        All rights reserved 💖
+        &copy; {year} <strong>{appData?.appName || 'YourCommunity'}</strong>. All rights reserved 💖
       </div>
     </footer>
   );

@@ -4,11 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_OPTIONS='--inspect' next dev --turbopack",
+    "prebuild": "rm -rf ./public/sitemap*.xml ./public/robots.txt",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "deploy": "next build --no-lint && vercel --prod"
+    "deploy": "next build --no-lint && vercel --prod",
+    "postbuild": "next-sitemap"
   },
   "dependencies": {
     "@vercel/analytics": "^1.5.0",
@@ -18,6 +20,7 @@
     "firebase-admin": "^13.3.0",
     "googleapis": "^148.0.0",
     "next": "15.2.5",
+    "next-sitemap": "^4.2.3",
     "node-forge": "^1.3.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

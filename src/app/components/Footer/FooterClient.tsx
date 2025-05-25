@@ -21,9 +21,7 @@ const FooterClient = () => {
     auth.setPersistence(browserLocalPersistence).then();
   }, []);
 
-  return (
-    <div className="bg-base-200 text-base-content py-12 mt-auto border-t border-base-300 transition-colors duration-300"></div>
-  );
+  return null;
 };
 
 export default FooterClient;

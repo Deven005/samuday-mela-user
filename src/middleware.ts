@@ -19,6 +19,7 @@ const PUBLIC_PATHS = [
   '/auth/google/callback',
   '/auth/facebook/callback',
   '/user/',
+  '/legal/',
 ];
 const ROOT_PATH = '/';
 
@@ -27,12 +28,18 @@ export async function middleware(request: NextRequest) {
   console.log('pathname: ', pathname);
 
   // 🔓 Skip check for public paths
-  if (PUBLIC_PATHS.includes(pathname) || pathname.startsWith('/user/')) {
-    const slug = pathname.split('/user/')[1];
-    // Optional: deny access to reserved usernames
-    const reserved = ['admin', 'profile', 'login', 'signup', 'settings', 'vendor', 'partner'];
-    if (reserved.includes(slug)) {
-      return NextResponse.redirect(new URL('/404', request.url));
+  if (
+    PUBLIC_PATHS.includes(pathname) ||
+    pathname.startsWith('/user/') ||
+    pathname.startsWith('/legal/')
+  ) {
+    if (pathname.startsWith('/user/')) {
+      const slug = pathname.split('/user/')[1];
+      // Optional: deny access to reserved usernames
+      const reserved = ['admin', 'profile', 'login', 'signup', 'settings', 'vendor', 'partner'];
+      if (reserved.includes(slug)) {
+        return NextResponse.redirect(new URL('/404', request.url));
+      }
     }
     return NextResponse.next();
   }
