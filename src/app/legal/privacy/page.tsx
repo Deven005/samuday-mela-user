@@ -1,4 +1,15 @@
 // src/app/legal/privacy/page.tsx
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy | Samuday Mela',
+  description: 'We value your privacy and are committed to protecting your personal information.',
+  other: {
+    'fb:app_id': process.env.NEXT_PUBLIC_FB_APP_ID || '',
+  },
+  facebook: { appId: process.env.NEXT_PUBLIC_FB_APP_ID || '' },
+};
+
 const PrivacyPolicy = () => {
   return (
     <main className="max-w-4xl mx-auto px-4 py-10 text-base-content">

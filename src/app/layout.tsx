@@ -69,6 +69,16 @@ export const metadata: Metadata = {
   icons: {
     icon: 'https://firebasestorage.googleapis.com/v0/b/samudaymela.appspot.com/o/public%2FAppLogo.png?alt=media&token=c2d303b5-c27f-4bde-a8c4-5bb434c30237',
   },
+  other: {
+    'fb:app_id': process.env.NEXT_PUBLIC_FB_APP_ID || '',
+  },
+  facebook: { appId: process.env.NEXT_PUBLIC_FB_APP_ID || '' },
+  formatDetection: {
+    url: true,
+    email: true,
+    date: true,
+    address: true,
+  },
 };
 
 export default async function RootLayout({
