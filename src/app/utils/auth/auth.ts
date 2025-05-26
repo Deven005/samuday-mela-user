@@ -229,7 +229,7 @@ export async function getOrCreateUser({
       user = await serverAuth.getUser(properties.uid!);
     }
     if (userProvider && !user.providerData.some((p) => p.providerId === userProvider.providerId)) {
-      await serverAuth.updateUser(user.uid, { providerToLink: userProvider });
+      user = await serverAuth.updateUser(user.uid, { providerToLink: userProvider });
       await serverFirestore
         .doc(`Users/${user.uid}`)
         .update(removeUndefinedDeep({ ...user, ...userProviderData }), { exists: true });
@@ -241,13 +241,13 @@ export async function getOrCreateUser({
       const firebaseError = JSON.parse(JSON.stringify(error));
 
       if (firebaseError.code === 'auth/user-not-found') {
-        const user = await serverAuth.createUser(properties);
+        let user = await serverAuth.createUser(properties);
 
         if (userProvider) {
-          await serverAuth.updateUser(user.uid, { providerToLink: userProvider });
+          user = await serverAuth.updateUser(user.uid, { providerToLink: userProvider });
         }
         const userData = {
-          ...removeUndefinedDeep((await serverAuth.getUser(user.uid)).toJSON()),
+          ...removeUndefinedDeep(user.toJSON()),
           story: 'Share a bit about yourself, your passions, and what drives you! 💬✨',
           address: 'Update your address!',
           interests: [] as string[],
