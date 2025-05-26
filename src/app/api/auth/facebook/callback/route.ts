@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
       httpOnly: true,
       secure: true,
       sameSite: 'lax',
-      maxAge: 60 * 60,
+      maxAge: 20,
     });
 
     // Redirect to frontend with Firebase custom token
