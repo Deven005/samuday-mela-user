@@ -18,7 +18,7 @@ const FooterClient = () => {
 
   useEffect(() => {
     auth.languageCode = 'hi';
-    auth.setPersistence(browserLocalPersistence).then();
+    // auth.setPersistence(browserLocalPersistence).then();
   }, []);
 
   return null;
