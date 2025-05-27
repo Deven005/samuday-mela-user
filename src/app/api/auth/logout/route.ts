@@ -1,5 +1,6 @@
 // app/api/auth/logout/route.ts
 import { logoutUser } from '@/app/utils/auth/auth';
+import { parseError } from '@/app/utils/utils';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -18,10 +19,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ message: 'Logout is done' }, { status: 200 });
   } catch (error: any) {
-    console.log('logout error : ', error);
+    const err = parseError(error);
+    console.log('logout error : ', err);
     return NextResponse.json(
-      { message: error.message ?? 'Error while Logout!', error },
-      { status: error.code ?? error.status ?? 400 },
+      { message: err.message ?? 'Error while Logout!', code: err.code },
+      { status: err.status ?? 400 },
     );
   }
 }
