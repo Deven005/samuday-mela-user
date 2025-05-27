@@ -6,13 +6,14 @@ import { cookies } from 'next/headers';
 import {
   clearUserData,
   formatLocalDate,
-  generateUsernameSlug,
   getDistanceFromLatLonInKm,
   getUserData,
+  parseError,
   removeUndefinedDeep,
 } from '../utils';
 import { subscribeToFcmTopicServerSide } from '../fcm/fcm-server';
 import { CreateRequest, UserProvider, UserRecord } from 'firebase-admin/auth';
+import { generateSlug } from '../slugify/slugify';
 
 interface SessionType {
   origin: string;
@@ -179,8 +180,9 @@ export async function deleteSession({ idToken, fcmTokens }: DeleteSessionType) {
     (await cookies()).delete('session');
     await clearUserData();
   } catch (error) {
-    console.error('Session deletion error:', error);
-    throw error;
+    const err = parseError(error);
+    console.error('Session deletion error:', err.message);
+    throw err;
   }
 }
 
@@ -223,11 +225,16 @@ export async function getOrCreateUser({
   try {
     // 🔍 Try to get existing Firebase user by email
     let user: UserRecord;
-    if (properties.email) {
-      user = await serverAuth.getUserByEmail(properties.email!);
+    if (properties?.email != undefined) {
+      user = await serverAuth.getUserByEmail(properties.email);
     } else {
-      user = await serverAuth.getUser(properties.uid!);
+      user = await serverAuth.getUser(properties?.uid!);
     }
+    // else if (properties?.phoneNumber != undefined) {
+    //   user = await serverAuth.getUser(properties.phoneNumber!);
+    // } else {
+    //   throw { message: 'No User Found!', code: 'auth/user-not-found' };
+    // }
     if (userProvider && !user.providerData.some((p) => p.providerId === userProvider.providerId)) {
       user = await serverAuth.updateUser(user.uid, { providerToLink: userProvider });
       await serverFirestore
@@ -241,11 +248,8 @@ export async function getOrCreateUser({
       const firebaseError = JSON.parse(JSON.stringify(error));
 
       if (firebaseError.code === 'auth/user-not-found') {
-        let user = await serverAuth.createUser(properties);
+        let user = await serverAuth.createUser({ ...properties, providerToLink: userProvider });
 
-        if (userProvider) {
-          user = await serverAuth.updateUser(user.uid, { providerToLink: userProvider });
-        }
         const userData = {
           ...removeUndefinedDeep(user.toJSON()),
           story: 'Share a bit about yourself, your passions, and what drives you! 💬✨',
@@ -258,16 +262,14 @@ export async function getOrCreateUser({
             ? // ? '152.59.23.76'
               '192.168.100.100'
             : headers.get('x-forwarded-for')?.toString().split(',')[0] || null,
+          ...userProviderData,
+          slug: `${generateSlug(user.displayName!)}-${user.uid.slice(0, 4)}-${user.uid.slice(-4)}`,
         };
-        await serverAuth.setCustomUserClaims(user.uid, { user: true });
 
-        await serverFirestore.doc(`Users/${user.uid}`).create(
-          removeUndefinedDeep({
-            ...userData,
-            ...userProviderData,
-            slug: `${generateUsernameSlug(user.displayName!)}-${user.uid.slice(0, 4)}-${user.uid.slice(-4)}`,
-          }),
-        );
+        await Promise.all([
+          serverAuth.setCustomUserClaims(user.uid, { user: true }),
+          serverFirestore.doc(`Users/${user.uid}`).create(removeUndefinedDeep(userData)),
+        ]);
         return { user, userData };
       }
     } else {
@@ -287,7 +289,7 @@ interface LogOutUserTye {
 
 interface CreateUserType {
   origin: string;
-  properties: CreateRequest;
+  properties?: CreateRequest;
   headers: Headers;
   userProvider?: UserProvider;
   userProviderData?: UserProviderType;
