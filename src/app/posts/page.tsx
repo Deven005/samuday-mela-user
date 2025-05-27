@@ -50,7 +50,7 @@ const Posts = () => {
       {posts?.length === 0 ? (
         <div className="text-center text-base-content text-lg mt-10">No posts available.</div>
       ) : (
-        <StaggeredGrid columns={4} columnWidth={300} className="bg-base-100 text-base-content">
+        <StaggeredGrid columns={4} columnWidth={300} className="bg-base-200 text-base-content">
           {posts?.map((post, index) => {
             const currentIndex = mediaIndexes[post.postId] || 0;
             const currentMedia = post.mediaFiles[currentIndex];
@@ -62,7 +62,7 @@ const Posts = () => {
                   {/* User Info */}
                   {postUser && (
                     <Link
-                      href={`/profile/${postUser.uid}`}
+                      href={`/user/${postUser.slug}`}
                       className="flex items-center space-x-3 mb-3 group"
                     >
                       <div className="relative w-10 h-10">
@@ -86,52 +86,75 @@ const Posts = () => {
 
                   {/* Media Display */}
                   {currentMedia && (
-                    <div className="relative group">
-                      {currentMedia.fileType === 'image' ? (
+                    <Link href={`posts/${post.postSlug}`}>
+                      <div className="relative group">
                         <div className="relative w-full h-64">
                           <Image
-                            src={currentMedia.fileUrl}
+                            id={`${currentMedia.postId}-media-${currentMedia.fileUrl}`}
+                            src={
+                              currentMedia.fileType.includes('image')
+                                ? currentMedia.fileUrl
+                                : currentMedia.thumbnailUrl
+                            }
                             alt={`media-${currentIndex}`}
                             fill
-                            className="object-cover rounded"
+                            className="object-fill rounded"
+                            fetchPriority="high"
                           />
+                          {/* {currentMedia.fileType.includes('image') ? (
+                          <Image
+                            id={`${currentMedia.postId}-media-${currentMedia.fileUrl}`}
+                            src={
+                              currentMedia.fileType.includes('image')
+                                ? currentMedia.fileUrl
+                                : currentMedia.thumbnailFileUrl
+                            }
+                            alt={`media-${currentIndex}`}
+                            fill
+                            className="object-fill rounded"
+                            fetchPriority="high"
+                          />
+                        ) : (
+                          <video
+                            controls
+                            src={currentMedia.fileUrl}
+                            className="object-fill rounded h-64"
+                            id={`${currentMedia.postId}-media-${currentMedia.fileUrl}`}
+                          />
+                        )} */}
                         </div>
-                      ) : (
-                        <video
-                          controls
-                          src={currentMedia.fileUrl}
-                          className="w-full object-cover rounded max-h-[250px]"
-                        />
-                      )}
 
-                      {post.mediaFiles.length > 1 && (
-                        <>
-                          <button
-                            onClick={() =>
-                              handleMediaChange(post.postId, 'prev', post.mediaFiles.length)
-                            }
-                            className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-base-300 bg-opacity-60 hover:bg-opacity-90 text-base-content p-2 rounded-full transition-opacity opacity-0 group-hover:opacity-100"
-                            aria-label="Previous media"
-                          >
-                            ❮
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleMediaChange(post.postId, 'next', post.mediaFiles.length)
-                            }
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-base-300 bg-opacity-60 hover:bg-opacity-90 text-base-content p-2 rounded-full transition-opacity opacity-0 group-hover:opacity-100"
-                            aria-label="Next media"
-                          >
-                            ❯
-                          </button>
-                        </>
-                      )}
-                    </div>
+                        {post.mediaFiles.length > 1 && (
+                          <>
+                            <button
+                              onClick={() =>
+                                handleMediaChange(post.postId, 'prev', post.mediaFiles.length)
+                              }
+                              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-base-300 bg-opacity-60 hover:bg-opacity-90 text-base-content p-2 rounded-full transition-opacity opacity-0 group-hover:opacity-100"
+                              aria-label="Previous media"
+                            >
+                              ❮
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleMediaChange(post.postId, 'next', post.mediaFiles.length)
+                              }
+                              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-base-300 bg-opacity-60 hover:bg-opacity-90 text-base-content p-2 rounded-full transition-opacity opacity-0 group-hover:opacity-100"
+                              aria-label="Next media"
+                            >
+                              ❯
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </Link>
                   )}
 
                   {/* Post Content */}
-                  {post.content && (
-                    <p className="text-sm text-base-content leading-snug mt-3">{post.content}</p>
+                  {post.description && (
+                    <p className="text-sm text-base-content leading-snug mt-3">
+                      {post.description}
+                    </p>
                   )}
 
                   {/* Hashtags */}

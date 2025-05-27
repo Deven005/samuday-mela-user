@@ -13,50 +13,82 @@ import {
   Unsubscribe,
   QueryDocumentSnapshot,
   DocumentData,
+  doc,
+  setDoc,
 } from 'firebase/firestore';
-import { firestore } from '@/app/config/firebase.config';
+import { auth, firestore } from '@/app/config/firebase.config';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { useOtherUserStore } from '../user/otherUserStore';
 import { FirebaseError } from 'firebase/app';
+import { generateSlug } from '@/app/utils/slugify/slugify';
+import { getIpAddress } from '@/app/utils/utils-client';
+import { uploadFilesWithThumbnails } from '@/app/utils/uploadFiles';
+import { showCustomToast } from '@/app/components/showCustomToast';
 
 // Define the Post type based on your Firestore data structure
 export interface Post {
   createdAt: Timestamp;
   updatedAt?: Timestamp;
-  content: string;
+  title: string;
+  description: string;
   hashtags: string[];
-  ipAddress: string;
+  // ipAddress: string;
   isEdited: boolean;
   isPrivate: boolean;
   isVisible: boolean;
-  lastEngagementAt: string;
-  location: { lat: number; lng: number };
+  // lastEngagementAt: string;
+  // location: { lat: number; lng: number };
   mediaFiles: Array<{
     fileType: string;
     fileUrl: string;
     localFilePath: string;
     storageFilePath: string;
-    thumbnailFileUrl: string;
+    thumbnailUrl: string;
     postId: string;
     updatedAt: string;
   }>;
   postId: string;
   userId: string;
+  postSlug: string;
+}
+
+export interface AddPostType {
+  title: string;
+  description: string;
+  // createdAt: Timestamp;
+  // updatedAt?: Timestamp;
+  hashtags: string[];
+  // ipAddress: string;
+  // isEdited: boolean;
+  // isPrivate: boolean;
+  // isVisible: boolean;
+  // lastEngagementAt: string;
+  // location: { lat: number; lng: number };
+  mediaFiles: Array<File>;
+  // postId: string;
+  // userId: string;
 }
 
 // Define the Zustand store
 interface PostStore {
   _hasHydrated?: boolean;
+  loading: boolean;
+  uploading: boolean;
   lastDoc: QueryDocumentSnapshot<DocumentData, DocumentData> | null;
   posts: Post[] | null;
   listeners: Unsubscribe[];
+  progress: number;
   setHasHydrated: () => void;
+  setLoading: (loading: boolean) => void;
+  setUploading: (uploading: boolean) => void;
   setPosts: (posts: Post[]) => void;
+  addPost: (post: AddPostType, onSuccess?: () => void) => Promise<void>;
   updatePost: (post: Post) => void;
   removePost: (postId: string) => void;
   loadPosts: () => void;
   listenPostChanges: () => () => void;
   reset: () => void;
+  setProgress: (progress: number) => void;
 }
 
 // Create the store with Zustand
@@ -65,10 +97,16 @@ export const usePostStore = create<PostStore>()(
     (set, get) => ({
       // hydration check
       _hasHydrated: false,
+      loading: false,
+      uploading: false,
       lastDoc: null,
       posts: [], // Initial state for posts
       listeners: [],
+      progress: 0,
       setHasHydrated: () => set({ _hasHydrated: true }),
+      setLoading: (loading) => set({ loading: loading }),
+      setUploading: (uploading) => set({ uploading: uploading }),
+      setProgress: (progress) => set({ progress: progress }),
       setPosts: (posts) => set({ posts }), // Action to set posts directly
       updatePost: (updatedPost) =>
         set((state) => ({
@@ -175,6 +213,95 @@ export const usePostStore = create<PostStore>()(
         }));
 
         return unsubscribe;
+      },
+      addPost: async (post, onSuccess?: () => void) => {
+        const { setLoading, setUploading, setProgress } = get();
+
+        try {
+          if (!post.title || !post.description) throw { message: 'No title or description!' };
+
+          setLoading(true);
+
+          const user = auth.currentUser!;
+          const currentTimestamp = Timestamp.now();
+          const postDoc = doc(collection(firestore, 'posts'));
+
+          let postData: any = {
+            title: post.title,
+            description: post.description,
+            hashtags: post.hashtags,
+            postSlug: `${generateSlug(post.title)}-${user.uid.slice(0, 4)}-${user.uid.slice(-4)}`,
+            createdAt: currentTimestamp,
+            updatedAt: currentTimestamp,
+            lastEngagementAt: currentTimestamp,
+            postId: postDoc.id,
+            userId: user.uid,
+            isEdited: false,
+            isPrivate: false,
+            isVisible: true,
+            ipAddress: await getIpAddress(),
+          };
+
+          if (post.mediaFiles && post.mediaFiles.length > 0) {
+            setUploading(true);
+
+            var filesResult = await Promise.all([
+              new Promise((resolve) => setTimeout(resolve, 3)),
+              uploadFilesWithThumbnails(
+                post.mediaFiles,
+                `Users/posts/${postDoc.id}`,
+                postDoc.id,
+                (prog) => setProgress(prog.percentage),
+              ),
+            ]);
+
+            console.log('File uploaded!');
+
+            // const files = await uploadFilesWithThumbnails(
+            //   post.mediaFiles,
+            //   `Users/posts/${postDoc.id}`,
+            //   postDoc.id,
+            //   (prog) => setProgress(prog.percentage),
+            // );
+
+            postData = { ...postData, mediaFiles: filesResult[1] };
+            setUploading(false);
+
+            showCustomToast({
+              title: 'File uploaded!',
+              message: 'New post files uploaded successfully!',
+              type: 'success',
+            });
+          }
+
+          await Promise.all([
+            new Promise((resolve) => setTimeout(resolve, 3)),
+            setDoc(postDoc, postData, { merge: true }),
+          ]);
+          setLoading(false);
+          setUploading(false);
+          setProgress(0);
+
+          if (onSuccess) onSuccess();
+
+          showCustomToast({
+            title: 'Post is added!',
+            message: 'New post is added successfully!',
+            type: 'success',
+          });
+        } catch (error) {
+          setLoading(false);
+          setUploading(false);
+          setProgress(0);
+
+          showCustomToast({
+            title: 'Error',
+            message: 'Something is wrong while adding Post!',
+            type: 'error',
+          });
+          await new Promise((resolve) => setTimeout(resolve, 3));
+          throw error;
+        }
       },
       reset: () => {
         // Clear all listeners manually if needed (e.g., on component unmount)
