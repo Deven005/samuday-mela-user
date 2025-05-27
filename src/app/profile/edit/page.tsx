@@ -25,10 +25,10 @@ const EditProfile = () => {
     currentOccupation: user?.currentOccupation || '',
     vibe: user?.vibe || '',
     emailVerified: user?.emailVerified ?? false,
-    occupationHistory: user?.occupationHistory || {
-      occupation: '',
-      occupationUpdatedAt: Timestamp.now(),
-    },
+    // occupationHistory: user?.occupationHistory || {
+    //   occupation: '',
+    //   occupationUpdatedAt: Timestamp.now(),
+    // },
     providerData: user?.providerData || [],
     createdAt: user?.createdAt ?? Timestamp.now(),
     updatedAt: Timestamp.now(),
@@ -50,10 +50,10 @@ const EditProfile = () => {
         currentOccupation: user.currentOccupation || '',
         vibe: user.vibe || '',
         emailVerified: user.emailVerified ?? false,
-        occupationHistory: user.occupationHistory || {
-          occupation: '',
-          occupationUpdatedAt: Timestamp.now(),
-        },
+        // occupationHistory: user.occupationHistory || {
+        //   occupation: '',
+        //   occupationUpdatedAt: Timestamp.now(),
+        // },
         providerData: user.providerData || [],
         createdAt: user.createdAt ?? Timestamp.now(),
         updatedAt: Timestamp.now(),
