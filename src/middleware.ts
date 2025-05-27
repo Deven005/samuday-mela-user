@@ -24,6 +24,25 @@ const PUBLIC_PATHS = [
 const ROOT_PATH = '/';
 
 export async function middleware(request: NextRequest) {
+  const ua = request.headers.get('user-agent') || '';
+  const botKeywords = [
+    'bot',
+    'crawl',
+    'slurp',
+    'spider',
+    'WhatsApp',
+    'TelegramBot',
+    'Slackbot',
+    'Viber',
+    'Discordbot',
+    'SkypeUriPreview',
+  ];
+
+  if (botKeywords.some((keyword) => ua.toLowerCase().includes(keyword.toLowerCase()))) {
+    console.log('Blocked:', ua);
+    return new NextResponse('Blocked, access denied', { status: 403 });
+  }
+
   const { pathname, origin } = request.nextUrl;
   console.log('pathname: ', pathname);
 
