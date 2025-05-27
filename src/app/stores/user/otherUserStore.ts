@@ -8,6 +8,7 @@ export interface OtherUser {
   displayName: string;
   uid: string;
   photoURL: string | null;
+  slug: string;
 }
 
 export interface OtherUsersState {
@@ -52,6 +53,7 @@ export const useOtherUserStore = create<OtherUsersState>()(
                 uid: doc.id,
                 displayName: doc.data()['displayName'],
                 photoURL: doc.data()['photoURL'],
+                slug: doc.data()['slug'],
               })),
             });
           } catch (err) {
