@@ -19,9 +19,9 @@ export async function POST(req: NextRequest) {
     const { userData } = (await getOrCreateUser({
       origin,
       properties: {
-        email,
-        password,
-        displayName,
+        email: email,
+        password: password,
+        displayName: displayName,
         photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(
           displayName || 'User',
         )}&rounded=true`,
@@ -45,9 +45,7 @@ export async function POST(req: NextRequest) {
 
     console.log('signInData: ', signInData);
 
-    if (signInData.error) {
-      throw signInData.error;
-    }
+    if (signInData.error) throw signInData.error;
 
     const { idToken, localId } = signInData;
 

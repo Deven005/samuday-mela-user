@@ -1,6 +1,6 @@
 // app/api/auth/sign-in/route.ts
 import { serverAuth, serverFirestore } from '@/app/config/firebase.server.config';
-import { createSession } from '@/app/utils/auth/auth';
+import { createSession, getOrCreateUser } from '@/app/utils/auth/auth';
 import { getUserData, removeUndefinedDeep, rsaDecrypt } from '@/app/utils/utils';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -58,18 +58,19 @@ export async function POST(req: NextRequest) {
     );
 
     const user = await serverAuth.getUser(localId);
-    if (!user.providerData.some((p) => p.providerId === 'password')) {
-      await serverAuth.updateUser(localId, {
-        providerToLink: {
-          providerId: 'password',
-          email,
-          uid: user.uid,
-          displayName: user.displayName,
-          phoneNumber: user.phoneNumber,
-          photoURL: user.photoURL,
-        },
-      });
-    }
+    await getOrCreateUser({
+      origin,
+      headers: req.headers,
+      properties: { uid: localId },
+      userProvider: {
+        providerId: 'password',
+        email: user.email,
+        uid: localId,
+        displayName: user.displayName,
+        phoneNumber: user.phoneNumber,
+        photoURL: user.photoURL,
+      },
+    });
 
     const userData = await getUserData();
     const customToken = await serverAuth.createCustomToken(localId, { user: true });
