@@ -1,5 +1,6 @@
 import { serverAuth } from '@/app/config/firebase.server.config';
 import { createSession, generateStrongPassword, getOrCreateUser } from '@/app/utils/auth/auth';
+import { parseError } from '@/app/utils/utils';
 import { google } from 'googleapis';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
@@ -28,8 +29,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No ID token from Google' }, { status: 500 });
     }
 
-    const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
-    const userInfo = await oauth2.userinfo.get();
+    const userInfo = await google.oauth2({ version: 'v2', auth: oauth2Client }).userinfo.get();
 
     const {
       email,
@@ -111,22 +111,26 @@ export async function GET(req: NextRequest) {
     //   return NextResponse.json({ error: firebaseGoogleSignInData }, { status: 400 });
     // }
 
-    await createSession({
-      origin,
-      idToken,
-      headers: req.headers,
-    });
+    const cookieStore = await cookies();
 
-    (await cookies()).set('firebase_custom_token', customToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 20, // expires in 20 seconds
-    });
+    await Promise.all([
+      createSession({
+        origin,
+        idToken,
+        headers: req.headers,
+      }),
+      cookieStore.set('firebase_custom_token', customToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 20, // expires in 20 seconds
+      }),
+    ]);
 
     return NextResponse.redirect(`${origin}/auth/google/callback`);
   } catch (err) {
-    console.error('OAuth Error:', err);
-    return NextResponse.json({ error: 'Failed to authenticate' }, { status: 500 });
+    var error = parseError(err);
+    console.error('OAuth Error:', error.message);
+    return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
   }
 }
