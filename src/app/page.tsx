@@ -13,7 +13,7 @@ export default async function Home() {
   }
 
   return (
-    <div className="bg-base-100 min-h-screen flex flex-col justify-center items-center px-6 md:px-12 py-16 text-base-content">
+    <div className="bg-base-200 min-h-screen flex flex-col justify-center items-center px-6 md:px-12 py-16 text-base-content">
       {!user ? (
         <div className="max-w-7xl mx-auto space-y-20 text-center">
           {/* ✨ Hero Section */}

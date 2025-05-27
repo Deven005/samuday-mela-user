@@ -28,7 +28,7 @@ export default function FaqPage() {
   ];
 
   return (
-    <div className="bg-base-100 text-base-content px-6 py-12">
+    <div className="bg-base-200 text-base-content px-6 py-12">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-10">
         {/* LEFT SIDE: Title + Intro */}
         <div className="space-y-6 lg:col-span-1">

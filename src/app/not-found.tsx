@@ -6,7 +6,7 @@ export default async function NotFound() {
   const appData = await getAppData();
 
   return (
-    <div className="min-h-screen px-4 py-12 bg-base-100 flex flex-col items-center justify-center text-center">
+    <div className="min-h-screen px-4 py-12 bg-base-200 flex flex-col items-center justify-center text-center">
       {/* Grid Header: Logo + Name + Tagline */}
       <div className="grid grid-cols-1 md:grid-cols-[80px_1fr] items-center gap-4 mb-10 max-w-3xl w-full text-left">
         {appData?.logoUrl && (
