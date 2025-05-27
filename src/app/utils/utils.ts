@@ -33,7 +33,8 @@ export interface AppData {
 }
 
 let cachedAppData: AppData | undefined, user: DocumentData | undefined; // ✅ Store cached data in a singleton variable
-const cache: Record<string, { data: any; timestamp: number }> = {};
+const cache: Record<string, { data: any; timestamp: number }> = {},
+  userByIdCache: Record<string, { data: any; timestamp: number }> = {};
 
 export async function getAppData() {
   if (!cachedAppData) {
@@ -65,6 +66,34 @@ export async function getUserData() {
   }
 }
 
+export async function getUserDataByUid(uid: string) {
+  try {
+    const now = Date.now();
+    const userByIdCached = userByIdCache[uid];
+
+    if (userByIdCached && now - userByIdCached.timestamp < 60 * 60 * 1000)
+      return userByIdCached.data;
+
+    const user = (await serverFirestore.doc(`Users/${uid}`).get()).data();
+    if (user?.empty) throw new Error('No user found');
+
+    // ✅ 3. Only keep public-safe fields
+    const publicData = {
+      displayName: user!.displayName,
+      photoURL: user!.photoURL,
+      vibe: user!.vibe,
+      story: user!.story,
+      slug: user!.slug,
+    };
+    userByIdCache[uid] = { data: publicData, timestamp: now };
+    return publicData;
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    user = undefined;
+    return undefined;
+  }
+}
+
 export async function getUserDataSlug(slug: string) {
   try {
     const now = Date.now();
@@ -87,6 +116,7 @@ export async function getUserDataSlug(slug: string) {
       photoURL: user.photoURL,
       vibe: user.vibe,
       story: user.story,
+      slug: user.slug,
       // hobbies: user.privacy?.hobbies ? user.hobbies : undefined,
       // currentOccupation: user.privacy?.occupation ? user.currentOccupation : undefined,
       // website: user.website,
@@ -142,7 +172,7 @@ export function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: numb
   return R * c; // Distance in km
 }
 
-export function formatLocalDate(date: Date, timeZone: string) {
+export function formatLocalDate(date: Date, timeZone: string = 'UTC') {
   return new Intl.DateTimeFormat('en-US', {
     timeZone,
     dateStyle: 'medium',
@@ -221,8 +251,11 @@ export function parseError(error: unknown): StandardizedError {
 
     return {
       message: typeof err.message === 'string' ? err.message : 'An unknown error occurred',
-      code: typeof err.code === 'string' || typeof err.code === 'number' ? err.code : undefined,
-      status: typeof err.status === 'number' ? err.status : undefined,
+      code:
+        typeof err.code === 'string' || typeof err.code === 'number'
+          ? err.code
+          : 'Error with unknown code!',
+      status: typeof err.status === 'number' ? err.status : 400,
     };
   }
 
@@ -233,13 +266,3 @@ export function parseError(error: unknown): StandardizedError {
 
   return { message: 'An unknown error occurred' };
 }
-
-// src/lib/slugify.ts
-export const generateUsernameSlug = (name: string) => {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-') // Convert spaces/special chars to "-"
-    .replace(/^-+|-+$/g, '') // Remove leading/trailing dashes
-    .replace(/-{2,}/g, '-'); // Remove duplicate dashes
-};
