@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useUserStore } from '../stores/user/userStore';
 import { useShallow } from 'zustand/shallow';
 import { usePostStore } from '../stores/post/postStore';
@@ -9,19 +9,16 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '../components/Button/Button';
 import LanguageSelector from '../components/languageSelector';
-import { auth } from '../config/firebase.config';
-import { fetchWithAppCheck } from '../utils/generateAppCheckToken';
-import { encryptJsonPayloadClient } from '../utils/encrypt/encrypt';
-import { showCustomToast } from '../components/showCustomToast';
 
 const UserProfile = () => {
-  const { user, updateUserProfilePic, reloadUser } = useUserStore(useShallow((state) => state));
+  const { user, updateUserProfilePic, loadingProvider, unlinkUserProvider } = useUserStore(
+    useShallow((state) => state),
+  );
   const posts = usePostStore(useShallow((state) => state.posts));
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [mediaIndexes, setMediaIndexes] = useState<Record<string, number>>({});
   const otherUsers = useOtherUserStore(useShallow((state) => state.otherUsers));
-  const [linkedProviders, setLinkedProviders] = useState<string[]>([]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -37,39 +34,7 @@ const UserProfile = () => {
     }
   };
 
-  useEffect(() => {
-    if (user) setLinkedProviders(user.providerData.map((p) => p.providerId));
-  }, [user]);
-
-  const handleUnlink = async (providerId: string) => {
-    try {
-      const currentUser = auth.currentUser;
-
-      if (!currentUser) return;
-
-      const res = await fetchWithAppCheck(
-        `/api/user/unlink-provider`,
-        (await auth.currentUser?.getIdToken()) ?? '',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            encryptedData: await encryptJsonPayloadClient({ providerIds: [providerId] }),
-          }),
-        },
-      );
-
-      if (res['message'].includes('Provider unlinked')) {
-        showCustomToast({ title: 'Update', message: res['message'], type: 'success' });
-        await reloadUser();
-      }
-    } catch (error: any) {
-      showCustomToast({
-        title: 'Error',
-        message: error.message ?? 'Something is wrong',
-        type: 'error',
-      });
-    }
-  };
+  const handleUnlink = async (providerId: string) => await unlinkUserProvider(providerId);
 
   const handleMediaChange = (postId: string, direction: 'prev' | 'next', total: number) => {
     setMediaIndexes((prev) => {
@@ -84,7 +49,7 @@ const UserProfile = () => {
       <p>Please sign in to view your profile.</p>
     </div>
   ) : (
-    <div className="min-h bg-base-100 p-4 text-base-content">
+    <div className="min-h bg-base-200 p-4 text-base-content">
       <div className="mx-10 space-y-6">
         {/* Profile Section */}
         <div className="card dark:bg-base-800 shadow-lg rounded-lg flex justify-center items-center">
@@ -154,17 +119,47 @@ const UserProfile = () => {
             <div className="mt-4">
               <h3 className="text-lg font-semibold text-base-content mb-2">Linked Accounts</h3>
               <ul className="space-y-2">
-                {linkedProviders.map((providerId) => (
-                  <li key={providerId} className="flex items-center justify-between">
-                    <span className="capitalize">{providerId.replace('.com', '')}</span>
+                {user.providerData.length === 0 && (
+                  <p className="text-sm text-base-content/70">No linked provider data found.</p>
+                )}
+                {user.providerData.map((provider, idx) => (
+                  <div
+                    key={provider.providerId + idx}
+                    className="p-4 rounded-lg bg-base-200 shadow flex items-center gap-4"
+                  >
+                    {provider.photoURL ? (
+                      <img
+                        src={provider.photoURL}
+                        alt={provider.displayName || 'Provider'}
+                        className="w-12 h-12 rounded-full shadow-md"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-base-300 flex items-center justify-center text-sm">
+                        ?
+                      </div>
+                    )}
+
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-base-content">
+                        {provider.displayName || 'Unnamed User'}
+                      </h4>
+                      <p className="text-sm text-base-content/70">{provider.email || 'No email'}</p>
+                      <p className="text-xs text-base-content/50 capitalize">
+                        Provider: {provider.providerId.replace('.com', '')}
+                      </p>
+                    </div>
                     <Button
+                      type="button"
+                      variant="error"
                       className="btn btn-sm btn-error"
-                      onClick={() => handleUnlink(providerId)}
-                      disabled={linkedProviders.length <= 1}
+                      onClick={() => handleUnlink(provider.providerId)}
+                      disabled={
+                        user.providerData.length <= 1 || loadingProvider === provider.providerId
+                      }
                     >
-                      Unlink
+                      {loadingProvider === provider.providerId ? 'Unlinking...' : 'Unlink'}
                     </Button>
-                  </li>
+                  </div>
                 ))}
               </ul>
             </div>
@@ -263,9 +258,9 @@ const UserProfile = () => {
                           )}
 
                           {/* Content */}
-                          {post.content && (
+                          {post.description && (
                             <p className="text-sm text-base-content leading-snug mt-3">
-                              {post.content}
+                              {post.description}
                             </p>
                           )}
 

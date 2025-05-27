@@ -17,6 +17,7 @@ import { getFCMToken, sendNotification } from '@/app/utils/fcm/fcm';
 import { trace } from 'firebase/performance';
 import { logEvent } from 'firebase/analytics';
 import { encryptJsonPayloadClient } from '@/app/utils/encrypt/encrypt';
+import { showCustomToast } from '@/app/components/showCustomToast';
 
 // Define the types for User data and store
 export interface CurrentUser {
@@ -55,6 +56,7 @@ export interface UserState {
   user: CurrentUser | null;
   listeners: (() => void)[];
   fcmToken: string | undefined;
+  loadingProvider: string;
   setUser: (user: CurrentUser) => void;
   setFcmToken: (fcmToken: string) => void;
   updateUser: (user: CurrentUser) => Promise<void>;
@@ -72,11 +74,13 @@ export interface UserState {
   // signUpWithGoogle: (onSuccess?: () => void) => Promise<void>;
   runAfterSignIn: (user: User, userData: CurrentUser, onSuccess?: () => void) => Promise<void>;
   runAfterSignUp: (user: User, userData: CurrentUser, onSuccess?: () => void) => Promise<void>;
+  unlinkUserProvider: (providerId: string, onSuccess?: () => void) => Promise<void>;
   reloadUser: () => Promise<void>;
   fetchUserData: (uid: string) => Promise<CurrentUser>;
   listenToUser: () => (() => void)[];
   reset: () => void;
   logoutUser: () => Promise<void>;
+  setLoadingProvider: (providerId: string) => void;
 }
 
 // Create the Zustand store with persistence using localStorage
@@ -89,7 +93,9 @@ export const useUserStore = create<UserState>()(
         listeners: [],
         user: null,
         fcmToken: undefined,
+        loadingProvider: '',
         setHasHydrated: () => set({ _hasHydrated: true }),
+        setLoadingProvider: (providerId: string) => set({ loadingProvider: providerId }),
         setUser: (user) => set({ user }),
         setFcmToken: (fcmToken: string) => set({ fcmToken }),
         reloadUser: async () => {
@@ -253,19 +259,7 @@ export const useUserStore = create<UserState>()(
         // },
         runAfterSignUp: async (user: User, userData, onSuccess?: () => void) => {
           try {
-            const { fcmToken } = get();
-
-            const timestamp = Timestamp.now();
-            // // Create the user document in Firestore with additional data
-            // await setDoc(doc(firestore, 'Users', user.uid), {
-            //   ...userData,
-            //   ipAddress: await getIpAddress(),
-            //   lastUsedIpAddress: await getIpAddress(),
-            //   uid: user.uid,
-            //   createdAt: timestamp,
-            //   updatedAt: timestamp,
-            // });
-
+            const { listenToUser } = get();
             auth.languageCode = userData.preferredLanguage ?? 'hi';
             // if (!user.emailVerified) {
             //   await sendEmailVerification(user);
@@ -274,19 +268,10 @@ export const useUserStore = create<UserState>()(
 
             // Update Zustand store with new user data
             set({
-              user: {
-                ...userData,
-                // uid: user.uid,
-                // email: user.email,
-                // createdAt: timestamp,
-                // updatedAt: timestamp,
-                // emailVerified: user.emailVerified,
-                // photoURL: user.photoURL,
-                // providerData: [],
-                // preferredLanguage: 'hi',
-              },
-              _hasHydrated: true,
+              user: userData,
+              // _hasHydrated: true,
             });
+            listenToUser();
           } catch (err) {
             console.error('Error runAfterSignUp signing up:', err);
             throw err;
@@ -384,31 +369,16 @@ export const useUserStore = create<UserState>()(
         },
         runAfterSignIn: async (user: User, userData, onSuccess?: () => void) => {
           try {
+            const { listenToUser } = get();
             auth.languageCode = userData.preferredLanguage ?? 'hi';
             // if (!user.emailVerified) {
             //   await sendEmailVerification(user);
             // }
             if (onSuccess) onSuccess();
             set({
-              user: {
-                uid: userData.uid,
-                email: userData.email ?? null,
-                displayName: userData.displayName ?? '',
-                emailVerified: userData.emailVerified ?? false,
-                phoneNumber: userData.phoneNumber ?? '',
-                address: userData.address ?? '',
-                hobbies: userData.hobbies ?? [],
-                story: userData.story ?? '',
-                currentOccupation: userData.currentOccupation ?? '',
-                vibe: userData.vibe ?? '',
-                photoURL: userData.photoURL,
-                providerData: userData.providerData ?? [],
-                createdAt: userData.createdAt,
-                updatedAt: userData.updatedAt,
-                preferredLanguage: userData.preferredLanguage,
-              },
+              user: userData,
               //  fcmToken: updatedFcmToken ?? ''
-              _hasHydrated: true,
+              // _hasHydrated: true,
             });
 
             // updateDoc(doc(firestore, `Users/${user.uid}`), {
@@ -416,6 +386,7 @@ export const useUserStore = create<UserState>()(
             // }).catch((e) => {
             //   console.log('runAfterSignIn catch: ', e);
             // });
+            listenToUser();
           } catch (err) {
             console.error('Error signing in with Google:', err);
             throw err;
@@ -461,10 +432,14 @@ export const useUserStore = create<UserState>()(
               const { reloadUser, user } = get();
 
               await reloadUser();
+
+              if (user === null) return;
+
               if (user?.emailVerified != firebaseUser.emailVerified) {
                 user!.emailVerified = firebaseUser.emailVerified;
               }
               const uid = firebaseUser.uid;
+              user.providerData = firebaseUser.providerData;
 
               const unsubscribe = onSnapshot(doc(firestore, 'Users', uid), (userDoc) => {
                 if (userDoc.exists()) {
@@ -503,6 +478,54 @@ export const useUserStore = create<UserState>()(
           }));
           return unsubList;
         },
+        unlinkUserProvider: async (providerId, onSuccess) => {
+          const { user, reloadUser, setLoadingProvider } = get();
+          try {
+            const currentUser = auth.currentUser;
+            if (!currentUser || !user) return;
+
+            setLoadingProvider(providerId);
+            const res = await fetchWithAppCheck(
+              `/api/user/unlink-provider`,
+              (await auth.currentUser?.getIdToken()) ?? '',
+              {
+                method: 'POST',
+                body: JSON.stringify({
+                  encryptedData: await encryptJsonPayloadClient({ providerIds: [providerId] }),
+                }),
+              },
+            );
+            console.log('RES: ', res);
+
+            const { message, error } = res;
+            if (error) throw error;
+
+            if (message.includes('Provider unlinked')) {
+              setLoadingProvider('');
+              showCustomToast({ title: 'Update', message: res['message'], type: 'success' });
+              // ✅ Manually remove the unlinked provider from the list
+              set({
+                user: {
+                  ...user,
+                  providerData: user.providerData.filter((p) => p.providerId !== providerId),
+                },
+              });
+              reloadUser()
+                .then()
+                .catch((e) =>
+                  console.log('userstore reload user e: ', e.message ?? 'something is wrong!'),
+                );
+            }
+          } catch (error) {
+            // setLoadingProvider('');
+            var err = JSON.parse(JSON.stringify(error));
+            showCustomToast({
+              title: 'Error',
+              message: err.message ?? 'Something is wrong',
+              type: 'error',
+            });
+          }
+        },
         reset: () => {
           // Clear all listeners manually if needed (e.g., on component unmount)
           set((state) => {
@@ -515,11 +538,11 @@ export const useUserStore = create<UserState>()(
 
           try {
             await Promise.all([
+              resetAllStores(),
               fetchWithAppCheck(`/api/auth/logout`, (await auth.currentUser?.getIdToken()) ?? '', {
                 method: 'POST',
                 body: JSON.stringify({ fcmToken: fcmToken }),
               }),
-              resetAllStores(),
               signOut(auth), // Firebase logout
             ]);
             localStorage.clear();
