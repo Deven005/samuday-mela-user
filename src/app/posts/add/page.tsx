@@ -6,6 +6,7 @@ import TextAreaField from '@/app/components/Input/TextAreaField';
 import { usePostStore } from '@/app/stores/post/postStore';
 import { useShallow } from 'zustand/shallow';
 import { Button } from '@/app/components/Button/Button';
+import { formatHumanFileSize } from '@/app/utils/uploadFiles';
 
 const AddPostPage = () => {
   const router = useRouter();
@@ -14,7 +15,7 @@ const AddPostPage = () => {
   const [description, setDescription] = useState('');
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
-  const { addPost, loading, progress, uploading, setLoading, setProgress } = usePostStore(
+  const { addPost, loading, uploading, setLoading, uploadProgress } = usePostStore(
     useShallow((state) => state),
   );
 
@@ -50,23 +51,50 @@ const AddPostPage = () => {
 
   useEffect(() => {
     setLoading(false);
-    setProgress(0);
   }, []);
 
   return (
     <div className="min-h-screen bg-base-200 py-10 px-4 md:px-8">
       {uploading && loading ? (
-        <div className="fixed inset-0 flex flex-col items-center justify-center z-50 bg-base-100 bg-opacity-90">
-          <div className="w-[90%] max-w-lg text-center p-6 bg-base-200 shadow-xl rounded-box">
-            <h2 className="text-2xl font-bold text-primary mb-4">Upload in Progress</h2>
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-base-100 bg-opacity-90">
+          <div className="w-[90%] max-w-lg text-center p-6 bg-base-200 shadow-xl rounded-box space-y-4">
+            <h2 className="text-2xl font-bold text-primary">Uploading...</h2>
+
+            {/* Optional file preview */}
+            {/* {thumbnailUrl && (
+              <div className="flex justify-center">
+                <img
+                  src={thumbnailUrl}
+                  alt="Uploading preview"
+                  className="w-20 h-20 rounded-lg object-cover border border-base-300"
+                />
+              </div>
+            )} */}
+
             <progress
               className="progress progress-primary w-full h-4"
-              value={progress}
+              value={uploadProgress?.percentage ?? 0}
               max="100"
             ></progress>
-            <p className="mt-3 text-lg font-medium text-base-content">
-              {progress.toFixed(1)}% uploaded
+
+            <p className="text-lg font-medium text-base-content">
+              {uploadProgress?.percentage.toFixed(1)}% uploaded
             </p>
+            <p className="text-sm text-base-content">
+              {formatHumanFileSize(uploadProgress?.uploadedSize ?? 0)} /{' '}
+              {formatHumanFileSize(uploadProgress?.totalSize ?? 0)}
+            </p>
+
+            <p className="text-sm text-base-content opacity-80 mt-1">
+              Uploading: <span className="font-medium">{uploadProgress?.currentFileName}</span>
+            </p>
+
+            {/* Cancel button */}
+            {/* {onCancel && (
+              <button onClick={onCancel} className="btn btn-sm btn-error mt-4">
+                Cancel Upload
+              </button>
+            )} */}
           </div>
         </div>
       ) : (

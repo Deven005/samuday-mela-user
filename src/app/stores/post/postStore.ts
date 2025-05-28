@@ -22,7 +22,7 @@ import { useOtherUserStore } from '../user/otherUserStore';
 import { FirebaseError } from 'firebase/app';
 import { generateSlug } from '@/app/utils/slugify/slugify';
 import { getIpAddress } from '@/app/utils/utils-client';
-import { uploadFilesWithThumbnails } from '@/app/utils/uploadFiles';
+import { uploadFilesWithThumbnails, UploadProgress } from '@/app/utils/uploadFiles';
 import { showCustomToast } from '@/app/components/showCustomToast';
 
 // Define the Post type based on your Firestore data structure
@@ -77,9 +77,11 @@ interface PostStore {
   lastDoc: QueryDocumentSnapshot<DocumentData, DocumentData> | null;
   posts: Post[] | null;
   listeners: Unsubscribe[];
-  progress: number;
+  // progress: number;
+  uploadProgress: UploadProgress | undefined;
   setHasHydrated: () => void;
   setLoading: (loading: boolean) => void;
+  setUploadProgress: (uploadProgress: UploadProgress) => void;
   setUploading: (uploading: boolean) => void;
   setPosts: (posts: Post[]) => void;
   addPost: (post: AddPostType, onSuccess?: () => void) => Promise<void>;
@@ -88,7 +90,7 @@ interface PostStore {
   loadPosts: () => void;
   listenPostChanges: () => () => void;
   reset: () => void;
-  setProgress: (progress: number) => void;
+  // setProgress: (progress: number) => void;
 }
 
 // Create the store with Zustand
@@ -103,10 +105,11 @@ export const usePostStore = create<PostStore>()(
       posts: [], // Initial state for posts
       listeners: [],
       progress: 0,
+      uploadProgress: undefined,
       setHasHydrated: () => set({ _hasHydrated: true }),
       setLoading: (loading) => set({ loading: loading }),
       setUploading: (uploading) => set({ uploading: uploading }),
-      setProgress: (progress) => set({ progress: progress }),
+      // setProgress: (progress) => set({ progress: progress }),
       setPosts: (posts) => set({ posts }), // Action to set posts directly
       updatePost: (updatedPost) =>
         set((state) => ({
@@ -214,8 +217,9 @@ export const usePostStore = create<PostStore>()(
 
         return unsubscribe;
       },
+      setUploadProgress: (uploadProgress) => set({ uploadProgress: uploadProgress }),
       addPost: async (post, onSuccess?: () => void) => {
-        const { setLoading, setUploading, setProgress } = get();
+        const { setLoading, setUploading, setUploadProgress } = get();
 
         try {
           if (!post.title || !post.description) throw { message: 'No title or description!' };
@@ -251,7 +255,7 @@ export const usePostStore = create<PostStore>()(
                 post.mediaFiles,
                 `Users/posts/${postDoc.id}`,
                 postDoc.id,
-                (prog) => setProgress(prog.percentage),
+                (prog) => setUploadProgress(prog),
               ),
             ]);
 
@@ -280,7 +284,12 @@ export const usePostStore = create<PostStore>()(
           ]);
           setLoading(false);
           setUploading(false);
-          setProgress(0);
+          setUploadProgress({
+            currentFileName: '',
+            percentage: 0,
+            totalSize: 0,
+            uploadedSize: 0,
+          });
 
           if (onSuccess) onSuccess();
 
@@ -292,7 +301,6 @@ export const usePostStore = create<PostStore>()(
         } catch (error) {
           setLoading(false);
           setUploading(false);
-          setProgress(0);
 
           showCustomToast({
             title: 'Error',

@@ -84,6 +84,7 @@ export interface UploadProgress {
   totalSize: number;
   uploadedSize: number;
   percentage: number;
+  currentFileName: string;
 }
 
 export const uploadFilesWithThumbnails = async (
@@ -93,13 +94,13 @@ export const uploadFilesWithThumbnails = async (
   onProgress?: (progress: UploadProgress) => void,
 ): Promise<UploadResult[]> => {
   const cleanId = identifier.replace(/\W/g, '');
-  let uploadedSize = 0;
+  const timestamp = Timestamp.now();
   const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+  let uploadedBytes = 0;
 
-  const uploadSingleFile = async (file: File): Promise<UploadResult> => {
+  const uploadSingleFile = async (file: File, index: number): Promise<UploadResult> => {
     const ext = file.name.split('.').pop();
-    const timestamp = Timestamp.now();
-    const filename = `${timestamp}-${cleanId}.${ext}`;
+    const filename = `${timestamp}-${cleanId}-${index}.${ext}`;
     const filePath = `${folderPath}/${filename}`;
     const fileRef = ref(storage, filePath);
 
@@ -109,27 +110,27 @@ export const uploadFilesWithThumbnails = async (
       uploadTask.on(
         'state_changed',
         (snapshot) => {
-          const bytesTransferred = snapshot.bytesTransferred;
-          const prevUploaded = uploadedSize;
-          uploadedSize = prevUploaded + bytesTransferred;
+          const uploadedSoFar = uploadedBytes + snapshot.bytesTransferred;
 
           if (onProgress) {
-            const percentage = (uploadedSize / totalSize) * 100;
             onProgress({
               totalSize,
-              uploadedSize,
-              percentage: Math.min(100, percentage),
+              uploadedSize: uploadedSoFar,
+              percentage: (uploadedSoFar / totalSize) * 100,
+              currentFileName: file.name,
             });
           }
         },
         (error) => reject(error),
         async () => {
+          uploadedBytes += file.size;
           const fileUrl = await getDownloadURL(uploadTask.snapshot.ref);
 
+          // Generate thumbnail
           const isImage = file.type.startsWith('image');
           const isVideo = file.type.startsWith('video');
-          let thumbnailBlob: Blob;
 
+          let thumbnailBlob: Blob;
           if (isImage) {
             thumbnailBlob = await generateImageThumbnail(file);
           } else if (isVideo) {
@@ -138,24 +139,44 @@ export const uploadFilesWithThumbnails = async (
             throw new Error(`Unsupported file type for thumbnail: ${file.type}`);
           }
 
-          const thumbPath = `${folderPath}/thumbnails/${timestamp}-${cleanId}.jpg`;
+          const thumbPath = `${folderPath}/thumbnails/${timestamp}-${cleanId}-${index}.jpg`;
           const thumbRef = ref(storage, thumbPath);
-          await uploadBytesResumable(thumbRef, thumbnailBlob);
-          const thumbnailUrl = await getDownloadURL(thumbRef);
+          const thumbUploadTask = uploadBytesResumable(thumbRef, thumbnailBlob);
 
-          resolve({
-            fileUrl,
-            thumbnailUrl,
-            storagePath: filePath,
-            originalFileName: file.name,
-            fileType: file.type,
-          });
+          thumbUploadTask.on(
+            'state_changed',
+            (snapshot) => {
+              const uploadedSoFar = uploadedBytes + snapshot.bytesTransferred;
+
+              if (onProgress) {
+                onProgress({
+                  totalSize,
+                  uploadedSize: uploadedSoFar,
+                  percentage: (uploadedSoFar / totalSize) * 100,
+                  currentFileName: file.name,
+                });
+              }
+            },
+            (error) => reject(error),
+            async () => {
+              const thumbnailUrl = await getDownloadURL(thumbRef);
+              uploadedBytes += thumbnailBlob.size;
+
+              resolve({
+                fileUrl,
+                thumbnailUrl,
+                storagePath: filePath,
+                originalFileName: file.name,
+                fileType: file.type,
+              });
+            },
+          );
         },
       );
     });
   };
 
-  const results = await Promise.all(files.map(uploadSingleFile));
+  const results = await Promise.all(files.map((file, index) => uploadSingleFile(file, index)));
   return results;
 };
 
@@ -232,4 +253,16 @@ export const generateVideoThumbnail = (file: File, seekTo = 3): Promise<Blob> =>
       reject(new Error('Error loading video file'));
     };
   });
+};
+
+// 4. Fully human readable (KB, MB, GB, TB)
+export const formatHumanFileSize = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(2)} KB`;
+  const mb = kb / 1024;
+  if (mb < 1024) return `${mb.toFixed(2)} MB`;
+  const gb = mb / 1024;
+  if (gb < 1024) return `${gb.toFixed(2)} GB`;
+  return `${(gb / 1024).toFixed(2)} TB`;
 };
