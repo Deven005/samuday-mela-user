@@ -65,6 +65,8 @@ export const metadata: Metadata = {
     'Samuday Mela',
     'A place to connect, learn, and grow together.',
     'A vibrant space to connect, share, learn, and grow together as a community.',
+    '(समुदाय)',
+    'समुदाय',
   ],
   icons: {
     icon: 'https://firebasestorage.googleapis.com/v0/b/samudaymela.appspot.com/o/public%2FAppLogo.png?alt=media&token=c2d303b5-c27f-4bde-a8c4-5bb434c30237',
@@ -79,6 +81,7 @@ export const metadata: Metadata = {
     date: true,
     address: true,
   },
+  verification: { google: 'rgjBxVJRptWSrcmArSGZOR4JR3tZNqq-M68BznneceU' },
 };
 
 export default async function RootLayout({
