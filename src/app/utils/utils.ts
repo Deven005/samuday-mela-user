@@ -117,6 +117,7 @@ export async function getUserDataSlug(slug: string) {
       vibe: user.vibe,
       story: user.story,
       slug: user.slug,
+      uid: user.uid,
       // hobbies: user.privacy?.hobbies ? user.hobbies : undefined,
       // currentOccupation: user.privacy?.occupation ? user.currentOccupation : undefined,
       // website: user.website,
