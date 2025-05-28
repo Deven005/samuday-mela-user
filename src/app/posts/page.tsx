@@ -84,44 +84,63 @@ const Posts = () => {
                     </Link>
                   )}
 
+                  {/* Post Title */}
+                  {post.description && (
+                    <p className="text-sm text-base-content leading-snug mt-3">{post.title}</p>
+                  )}
+
+                  {/* Post Content */}
+                  {post.description && (
+                    <p className="text-sm text-base-content leading-snug mt-3">
+                      {post.description}
+                    </p>
+                  )}
+
+                  {/* Hashtags */}
+                  {post.hashtags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {post.hashtags.map((hashtag, idx) => (
+                        <Link href={`hashtags/${hashtag}`} key={`${hashtag}-${idx}`}>
+                          <span className="badge badge-outline badge-primary text-xs">
+                            #{hashtag}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Edited Tag */}
+                  {post.isEdited && (
+                    <div className="text-xs italic text-warning mt-2">Edited Post</div>
+                  )}
+
                   {/* Media Display */}
                   {currentMedia && (
                     <Link href={`posts/${post.postSlug}`}>
-                      <div className="relative group">
+                      <div className="relative group mt-3">
                         <div className="relative w-full h-64">
-                          <Image
-                            id={`${currentMedia.postId}-media-${currentMedia.fileUrl}`}
-                            src={
-                              currentMedia.fileType.includes('image')
-                                ? currentMedia.fileUrl
-                                : currentMedia.thumbnailUrl
-                            }
-                            alt={`media-${currentIndex}`}
-                            fill
-                            className="object-fill rounded"
-                            fetchPriority="high"
-                          />
-                          {/* {currentMedia.fileType.includes('image') ? (
-                          <Image
-                            id={`${currentMedia.postId}-media-${currentMedia.fileUrl}`}
-                            src={
-                              currentMedia.fileType.includes('image')
-                                ? currentMedia.fileUrl
-                                : currentMedia.thumbnailFileUrl
-                            }
-                            alt={`media-${currentIndex}`}
-                            fill
-                            className="object-fill rounded"
-                            fetchPriority="high"
-                          />
-                        ) : (
-                          <video
-                            controls
-                            src={currentMedia.fileUrl}
-                            className="object-fill rounded h-64"
-                            id={`${currentMedia.postId}-media-${currentMedia.fileUrl}`}
-                          />
-                        )} */}
+                          {currentMedia.fileType.includes('image') ? (
+                            <Image
+                              id={`${currentMedia.postId}-media-${currentMedia.fileUrl}`}
+                              src={
+                                currentMedia.fileType.includes('image')
+                                  ? currentMedia.fileUrl
+                                  : currentMedia.thumbnailUrl
+                              }
+                              alt={`media-${currentIndex}`}
+                              fill
+                              className="object-fill rounded"
+                              fetchPriority="high"
+                            />
+                          ) : (
+                            <video
+                              controls
+                              src={currentMedia.fileUrl}
+                              className="object-fill rounded h-64"
+                              poster={currentMedia.thumbnailUrl}
+                              id={`${currentMedia.postId}-media-${currentMedia.fileUrl}`}
+                            />
+                          )}
                         </div>
 
                         {post.mediaFiles.length > 1 && (
@@ -148,32 +167,6 @@ const Posts = () => {
                         )}
                       </div>
                     </Link>
-                  )}
-
-                  {/* Post Content */}
-                  {post.description && (
-                    <p className="text-sm text-base-content leading-snug mt-3">
-                      {post.description}
-                    </p>
-                  )}
-
-                  {/* Hashtags */}
-                  {post.hashtags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {post.hashtags.map((hashtag, idx) => (
-                        <span
-                          key={`${hashtag}-${idx}`}
-                          className="badge badge-outline badge-primary text-xs"
-                        >
-                          #{hashtag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Edited Tag */}
-                  {post.isEdited && (
-                    <div className="text-xs italic text-warning mt-2">Edited Post</div>
                   )}
                 </div>
               </StaggeredGridItem>
