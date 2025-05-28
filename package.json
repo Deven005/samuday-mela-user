@@ -4,7 +4,6 @@
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_OPTIONS='--inspect' next dev --turbopack",
-    "prebuild": "rm -rf ./public/sitemap*.xml ./public/robots.txt",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
