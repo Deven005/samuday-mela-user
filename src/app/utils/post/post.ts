@@ -1,7 +1,9 @@
 import { serverFirestore } from '@/app/config/firebase.server.config';
 import { Timestamp } from 'firebase-admin/firestore';
 
-const cache: Record<string, { data: any; timestamp: number }> = {};
+const cache: Record<string, { data: any; timestamp: number }> = {},
+  postsByUserIdCache: Record<string, { data: PostDetailsProps[]; timestamp: number }> = {};
+
 export type MediaFile = {
   fileUrl: string;
   thumbnailUrl: string;
@@ -60,5 +62,58 @@ export async function getPostSlug(slug: string) {
   } catch (error) {
     console.error('Error fetching user by slug!');
     throw error;
+  }
+}
+
+export async function getPostsByUserId(userId: string): Promise<PostDetailsProps[]> {
+  try {
+    const now = Date.now();
+    const cached = postsByUserIdCache[userId];
+
+    // Use cache if not expired (valid for 5 min)
+    if (cached && now - cached.timestamp < 60 * 5 * 1000) {
+      return cached.data;
+    }
+
+    console.log('📡 Fetching posts from Firestore for user');
+
+    const snapshot = await serverFirestore
+      .collection('posts')
+      .where('userId', '==', userId)
+      .where('isPrivate', '==', false)
+      .where('isVisible', '==', true)
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    if (snapshot.empty) {
+      postsByUserIdCache[userId] = { data: [], timestamp: now };
+      return [];
+    }
+
+    const posts: PostDetailsProps[] = snapshot.docs.map((doc) => {
+      const post = doc.data() as PostDetailsProps;
+      return {
+        postId: doc.id,
+        postSlug: post.postSlug,
+        title: post.title,
+        description: post.description,
+        mediaFiles: post.mediaFiles || [],
+        hashtags: post.hashtags || [],
+        userId: post.userId,
+        createdAt: (post.createdAt as unknown as Timestamp).toDate(),
+        updatedAt: (post.updatedAt as unknown as Timestamp).toDate(),
+        lastEngagementAt: (post.lastEngagementAt as unknown as Timestamp).toDate(),
+        isEdited: post.isEdited,
+        isPrivate: post.isPrivate,
+        isVisible: post.isVisible,
+        ipAddress: post.ipAddress,
+      };
+    });
+
+    postsByUserIdCache[userId] = { data: posts, timestamp: now };
+    return posts;
+  } catch (error) {
+    console.error('❌ Error fetching posts by user ID:', error);
+    throw new Error('Failed to fetch posts for this user.');
   }
 }
