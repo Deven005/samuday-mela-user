@@ -20,28 +20,26 @@ const PUBLIC_PATHS = [
   '/auth/facebook/callback',
   '/user/',
   '/legal/',
+  '/robots.txt',
 ];
 const ROOT_PATH = '/';
 
 export async function middleware(request: NextRequest) {
-  const ua = request.headers.get('user-agent') || '';
-  const botKeywords = [
-    'bot',
-    'crawl',
-    'slurp',
-    'spider',
-    'WhatsApp',
-    'TelegramBot',
-    'Slackbot',
-    'Viber',
-    'Discordbot',
-    'SkypeUriPreview',
-  ];
+  // const ua = request.headers.get('user-agent') || '';
+  // const botKeywords = [
+  // 'spider',
+  // 'WhatsApp',
+  // 'TelegramBot',
+  // 'Slackbot',
+  // 'Viber',
+  // 'Discordbot',
+  // 'SkypeUriPreview',
+  // ];
 
-  if (botKeywords.some((keyword) => ua.toLowerCase().includes(keyword.toLowerCase()))) {
-    console.log('Blocked:', ua);
-    return new NextResponse('Blocked, access denied', { status: 403 });
-  }
+  // if (botKeywords.some((keyword) => ua.toLowerCase().includes(keyword.toLowerCase()))) {
+  //   console.log('Blocked:', ua);
+  //   return new NextResponse('Blocked, access denied', { status: 403 });
+  // }
 
   const { pathname, origin } = request.nextUrl;
   console.log('pathname: ', pathname);
@@ -50,7 +48,8 @@ export async function middleware(request: NextRequest) {
   if (
     PUBLIC_PATHS.includes(pathname) ||
     pathname.startsWith('/user/') ||
-    pathname.startsWith('/legal/')
+    pathname.startsWith('/legal/') ||
+    (pathname.startsWith('/sitemap') && pathname.endsWith('.xml'))
   ) {
     if (pathname.startsWith('/user/')) {
       const slug = pathname.split('/user/')[1];
