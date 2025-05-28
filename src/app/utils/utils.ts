@@ -32,9 +32,18 @@ export interface AppData {
   features: AppFeature[];
 }
 
+export interface UserType {
+  displayName: string;
+  photoURL: string;
+  vibe: string;
+  story: string;
+  slug: string;
+  uid: string;
+}
+
 let cachedAppData: AppData | undefined, user: DocumentData | undefined; // ✅ Store cached data in a singleton variable
-const cache: Record<string, { data: any; timestamp: number }> = {},
-  userByIdCache: Record<string, { data: any; timestamp: number }> = {};
+const cache: Record<string, { data: UserType; timestamp: number }> = {},
+  userByIdCache: Record<string, { data: UserType; timestamp: number }> = {};
 
 export async function getAppData() {
   if (!cachedAppData) {
@@ -84,6 +93,7 @@ export async function getUserDataByUid(uid: string) {
       vibe: user!.vibe,
       story: user!.story,
       slug: user!.slug,
+      uid: user!.uid,
     };
     userByIdCache[uid] = { data: publicData, timestamp: now };
     return publicData;
