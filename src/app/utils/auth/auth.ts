@@ -177,12 +177,15 @@ export async function deleteSession({ idToken, fcmTokens }: DeleteSessionType) {
       await serverMessaging.unsubscribeFromTopic(fcmTokens, 'global');
     }
     // await serverAuth.revokeRefreshTokens(verifiedUser.sub);
-    (await cookies()).delete('session');
-    await clearUserData();
+    // (await cookies()).delete('session');
+    // await clearUserData();
   } catch (error) {
     const err = parseError(error);
     console.error('Session deletion error:', err.message);
     throw err;
+  } finally {
+    (await cookies()).delete('session');
+    await clearUserData();
   }
 }
 
