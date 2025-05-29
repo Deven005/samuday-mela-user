@@ -4,7 +4,7 @@ import { NextResponse, NextRequest } from 'next/server';
 
 export const config = {
   matcher: [
-    '/((?!sign-in|sign-up|_next/static|_next/image|api|favicon.ico|firebase-messaging-sw.js).*)',
+    '/((?!sign-in|sign-up|_next/static|_next/image|api|favicon.ico|firebase-messaging-sw.js|sitemap.xml|robots.txt).*)',
   ],
 };
 const PUBLIC_PATHS = [
@@ -21,26 +21,11 @@ const PUBLIC_PATHS = [
   '/user/',
   '/legal/',
   '/robots.txt',
+  '/hashtags',
 ];
 const ROOT_PATH = '/';
 
 export async function middleware(request: NextRequest) {
-  // const ua = request.headers.get('user-agent') || '';
-  // const botKeywords = [
-  // 'spider',
-  // 'WhatsApp',
-  // 'TelegramBot',
-  // 'Slackbot',
-  // 'Viber',
-  // 'Discordbot',
-  // 'SkypeUriPreview',
-  // ];
-
-  // if (botKeywords.some((keyword) => ua.toLowerCase().includes(keyword.toLowerCase()))) {
-  //   console.log('Blocked:', ua);
-  //   return new NextResponse('Blocked, access denied', { status: 403 });
-  // }
-
   const { pathname, origin } = request.nextUrl;
   console.log('pathname: ', pathname);
 
@@ -49,7 +34,7 @@ export async function middleware(request: NextRequest) {
     PUBLIC_PATHS.includes(pathname) ||
     pathname.startsWith('/user/') ||
     pathname.startsWith('/legal/') ||
-    (pathname.startsWith('/sitemap') && pathname.endsWith('.xml'))
+    pathname.startsWith('/sitemap')
   ) {
     if (pathname.startsWith('/user/')) {
       const slug = pathname.split('/user/')[1];
