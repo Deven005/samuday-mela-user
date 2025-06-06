@@ -41,17 +41,24 @@ export interface UserType {
   uid: string;
 }
 
-let cachedAppData: AppData | undefined, user: DocumentData | undefined; // ✅ Store cached data in a singleton variable
-const cache: Record<string, { data: UserType; timestamp: number }> = {},
+let user: DocumentData | undefined; // ✅ Store cached data in a singleton variable
+const cachedAppData: Record<string, { data: AppData; timestamp: number }> = {},
+  cache: Record<string, { data: UserType; timestamp: number }> = {},
   userByIdCache: Record<string, { data: UserType; timestamp: number }> = {};
 
 export async function getAppData() {
-  if (!cachedAppData) {
-    console.log('Fetching appData from Firestore...');
-    cachedAppData = (await serverFirestore.doc('appData/general').get()).data() as AppData; // ✅ Cache the result
-  }
+  const now = Date.now();
+  const appDataCached = cachedAppData['app-data'];
 
-  return cachedAppData; // ✅ Return cached data instead of refetching
+  if (appDataCached && now - appDataCached.timestamp < 60 * 60 * 1000) return appDataCached.data;
+
+  console.log('Fetching appData from Firestore...');
+  cachedAppData['app-data'] = {
+    data: (await serverFirestore.doc('appData/general').get()).data() as AppData, // ✅ Cache the result
+    timestamp: now,
+  };
+
+  return cachedAppData['app-data'].data; // ✅ Return cached data instead of refetching
 }
 
 export async function getUserData() {
