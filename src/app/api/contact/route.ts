@@ -1,9 +1,14 @@
 // /api/contact/route.ts
+import { serverFirestore } from '@/app/config/firebase.server.config';
+import { parseError } from '@/app/utils/utils';
+import { Timestamp } from 'firebase-admin/firestore';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs'; // Ensure this runs in Node.js
 
 export async function POST(req: NextRequest) {
+  const res = NextResponse.redirect(new URL('/contact', req.url));
+
   try {
     const formData = await req.formData();
     const name = formData.get('name')?.toString().trim();
@@ -12,27 +17,47 @@ export async function POST(req: NextRequest) {
 
     // Validation
     if (!name || !email || !message) {
-      return NextResponse.redirect(
-        new URL('/contact?error=All fields required', req.url), // Absolute URL needed here
-      );
+      res.cookies.set('contactError', 'All fields are required', { maxAge: 5, path: '/contact' });
+      return res;
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.redirect(
-        new URL('/contact?error=Invalid email', req.url), // Absolute URL needed here
-      );
+      res.cookies.set('contactError', 'Invalid email', { maxAge: 5, path: '/contact' });
+      return res;
     }
+    // const token = formData.get('g-recaptcha-response') as string;
 
-    console.log('📥 Contact submission:', { name, email, message });
+    const ip = req.headers.get('x-forwarded-for')?.toString().split(',')[0] || 'unknown';
+    const userAgent = req.headers.get('user-agent') || 'unknown';
+
+    // const isHuman = await verifyRecaptcha(token, ip.toString());
+
+    // if (!isHuman) {
+    //   throw { message: 'reCAPTCHA failed' };
+    // }
+
+    await serverFirestore.collection('contactMessages').add({
+      name,
+      email,
+      message,
+      createdAt: Timestamp.now(),
+      status: 'new',
+      ip,
+      userAgent,
+    });
 
     // Redirect on success
-    return NextResponse.redirect(new URL('/contact?success=true', req.url));
+    res.cookies.set('contactSuccess', '1', { maxAge: 5, path: '/contact' });
+    return res;
   } catch (error) {
+    const err = parseError(error);
     console.error('❌ Contact form error:', error);
 
     // Fallback redirect on error
-    return NextResponse.redirect(
-      new URL('/contact?error=Server+error+please+try+again', req.url), // Absolute URL needed here
-    );
+    res.cookies.set('contactError', err.message, {
+      maxAge: 5,
+      path: '/contact',
+    });
+    return res;
   }
 }

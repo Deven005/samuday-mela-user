@@ -1,8 +1,13 @@
+import { cookies } from 'next/headers';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ContactPage() {
+  const cookieStore = await cookies();
+  const success = cookieStore.get('contactSuccess');
+  const error = cookieStore.get('contactError');
+
   return (
     <div className="bg-gradient-to-br from-base-100 via-base-200 to-base-100 text-base-content px-6 py-12">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -18,18 +23,22 @@ export default async function ContactPage() {
           </p>
           <div className="space-y-2">
             <p>
-              📍 <span className="font-semibold">Our Office:</span> 123 A Street, Bharat
+              📍 <span className="font-semibold">Our Office:</span>
+              {/* 123 A Street, Bharat */}
+              Coming soon!
             </p>
             <p>
               ✉️ <span className="font-semibold">Email:</span>{' '}
               <Link href="mailto:hello@yourapp.com" className="link link-primary">
-                hello@yourapp.com
+                {/* hello@yourapp.com */}
+                Coming soon!
               </Link>
             </p>
             <p>
               📞 <span className="font-semibold">Phone:</span>{' '}
               <Link href="tel:+1234567890" className="link link-primary">
-                +1 (234) 567-890
+                {/* +1 (234) 567-890 */}
+                Coming soon!
               </Link>
             </p>
             <div className="flex space-x-4 mt-4">
@@ -49,8 +58,13 @@ export default async function ContactPage() {
         {/* RIGHT SIDE: Contact Form */}
         <div className="lg:col-span-2">
           <div className="card bg-base-200 p-6 rounded-2xl shadow-lg">
-            {/* {success && <div className="alert alert-success mb-4">Message sent successfully!</div>} */}
-            {/* {error && <div className="alert alert-error mb-4">{decodeURIComponent(error)}</div>} */}
+            {success && <div className="alert alert-success mb-4">Message sent successfully!</div>}
+            {error && (
+              <div className="alert alert-error mb-4">{decodeURIComponent(error.value)}</div>
+            )}
+
+            {/* {success && <p className="text-green-600">✅ Message sent!</p>} */}
+            {/* {error && <p className="text-red-600">❌ {error.value}</p>} */}
 
             <form method="POST" action="/api/contact" className="space-y-6" spellCheck>
               <div>
