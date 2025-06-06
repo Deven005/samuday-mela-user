@@ -50,7 +50,7 @@ const UserPublicProfile = async ({ params }: { params: Promise<{ slug: string }>
   } catch (error) {
     notFound();
   }
-  
+
   const mainEntity = await getPostsMainEntity(userPosts);
 
   const jsonLd = {
