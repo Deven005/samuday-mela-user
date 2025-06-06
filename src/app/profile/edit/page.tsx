@@ -7,6 +7,7 @@ import Image from 'next/image';
 import InputField from '@/app/components/Input/InputField';
 import TextAreaField from '@/app/components/Input/TextAreaField';
 import { Button } from '@/app/components/Button/Button';
+import { showCustomToast } from '@/app/components/showCustomToast';
 
 const EditProfile = () => {
   // const user = useUserStore(useShallow((state) => state.user));
@@ -63,21 +64,34 @@ const EditProfile = () => {
   }, [user]);
 
   const handleSave = async () => {
-    const updatedUser = {
-      ...user,
-      ...editedUser,
-      hobbies: editedUser.hobbies
-        // .split(',')
-        .map((h) => h.trim())
-        .filter(Boolean),
-      updatedAt: Timestamp.now(),
-    };
+    try {
+      const updatedUser = {
+        ...user,
+        ...editedUser,
+        hobbies: editedUser.hobbies
+          // .split(',')
+          .map((h) => h.trim())
+          .filter(Boolean),
+        updatedAt: Timestamp.now(),
+      };
 
-    if (!isEqualExceptUpdatedAt(user, updatedUser)) {
-      await updateUser(updatedUser);
+      if (!isEqualExceptUpdatedAt(user, updatedUser)) {
+        await updateUser(updatedUser);
+        showCustomToast({
+          title: 'Profile Update',
+          message: 'Profile is updated successfully!',
+          type: 'success',
+        });
+      }
+      router.back();
+      router.refresh();
+    } catch (error) {
+      showCustomToast({
+        title: 'Profile Update',
+        message: 'Profile is not updated!',
+        type: 'error',
+      });
     }
-    router.back();
-    router.refresh();
   };
 
   // Function to deeply compare 2 objects (excluding updatedAt)

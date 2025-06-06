@@ -1,5 +1,5 @@
 // src/utils/showCustomToast.ts
-import { toast, ToastOptions, ToastContent } from 'react-toastify';
+import { toast, ToastOptions, ToastContent } from 'react-toastify/unstyled';
 
 type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -39,13 +39,17 @@ export const showCustomToast = ({
 };
 
 const getToastTheme = (): 'light' | 'dark' | 'colored' => {
-  // Read theme from localStorage or use system
-  const savedTheme = localStorage.getItem('theme') || 'system';
+  try {
+    // Read theme from localStorage or use system
+    const savedTheme = localStorage.getItem('theme') || 'system';
 
-  if (savedTheme === 'light') return 'light';
-  if (savedTheme === 'dark') return 'dark';
+    if (savedTheme === 'light') return 'light';
+    if (savedTheme === 'dark') return 'dark';
 
-  // For "system", use prefers-color-scheme
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  return prefersDark ? 'dark' : 'light';
+    // For "system", use prefers-color-scheme
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return prefersDark ? 'dark' : 'light';
+  } catch (error) {
+    return 'light';
+  }
 };

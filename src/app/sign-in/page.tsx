@@ -6,6 +6,7 @@ import Link from 'next/link';
 import InputField from '../components/Input/InputField';
 import { Button } from '../components/Button/Button';
 import { useShallow } from 'zustand/shallow';
+import { showCustomToast } from '../components/showCustomToast';
 
 const SignIn = () => {
   const { signIn, user, _hasHydrated } = useUserStore(useShallow((state) => state));
@@ -30,6 +31,11 @@ const SignIn = () => {
     } catch (err: any) {
       console.error(err);
       setError(err.message);
+      showCustomToast({
+        title: 'Sign in error!',
+        message: err.message,
+        type: 'error',
+      });
     } finally {
       setLoading(false);
     }
@@ -45,8 +51,18 @@ const SignIn = () => {
     } catch (err: any) {
       if (err === 'INVALID_LOGIN_CREDENTIALS') {
         setError('invalid email or pass, or no account exist!');
+        showCustomToast({
+          title: 'Sign in error!',
+          message: 'invalid email or pass, or no account exist!',
+          type: 'error',
+        });
       } else {
         setError(err.message);
+        showCustomToast({
+          title: 'Sign in error!',
+          message: err.message,
+          type: 'error',
+        });
       }
       console.error(err);
       setLoading(false);
