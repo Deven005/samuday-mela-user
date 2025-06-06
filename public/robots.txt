@@ -6,4 +6,4 @@ Allow: /
 Host: https://samuday-mela-user.vercel.app
 
 # Sitemaps
-Sitemap: https://samuday-mela-user.vercel.app/sitemap.xml
+Sitemap: https://samuday-mela-user.vercel.app/api/sitemap.xml
