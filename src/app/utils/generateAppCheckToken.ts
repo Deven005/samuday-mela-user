@@ -20,20 +20,12 @@ export async function fetchWithAppCheck(
   try {
     // const token = await getAppCheckToken(); // ✅ Fetch App Check token globally
 
-    const isFormData = options.body instanceof FormData;
-
     const headers = new Headers(options.headers);
     headers.set('Authorization', `Bearer ${userIdToken}`);
-    const finalHeaders: HeadersInit = isFormData
-      ? headers // leave as is
-      : {
-          'Content-Type': 'application/json',
-          ...headers,
-        };
 
-    // if (!headers.get('Content-Type')) {
-    //   headers.set('Content-Type', 'application/json');
-    // }
+    if (!headers.get('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
 
     // if (token) {
     // headers.set('X-Firebase-AppCheck', token); // ✅ Attach App Check token to request headers
@@ -48,8 +40,6 @@ export async function fetchWithAppCheck(
 
     const response = await fetch(`${origin}${url}`, {
       ...options,
-      headers: finalHeaders,
-      body: isFormData ? options.body : JSON.stringify(options.body),
     });
 
     // if (!response.ok) {
