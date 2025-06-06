@@ -12,6 +12,8 @@ const PostBySlug = async ({ params }: { params: Promise<{ slug: string }> }) => 
 
   try {
     post = await getPostSlug(slug);
+    if (!post.isVisible) throw { message: 'No post to show!' };
+    
     user = await getUserDataByUid(post.userId);
   } catch (error) {
     notFound();
@@ -62,7 +64,7 @@ const PostBySlug = async ({ params }: { params: Promise<{ slug: string }> }) => 
           <strong>Updated At:</strong> {formatLocalDate(post.updatedAt)}
         </p>
         <p>
-          <strong>Posted By:</strong> {user.displayName}
+          <strong>Posted By:</strong> {user?.displayName}
         </p>
         {/* <p>
           <strong>Edited:</strong> {post.isEdited ? 'Yes' : 'No'}
