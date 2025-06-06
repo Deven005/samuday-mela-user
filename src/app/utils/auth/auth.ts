@@ -139,9 +139,9 @@ export async function createSession({ origin, idToken, headers, fcmTokens }: Ses
               )}.`,
             }),
           });
-          console.log('notificationRes: ', notificationRes);
-          console.log('notificationRes: ', notificationRes.ok);
-          console.log('notificationRes: ', await notificationRes.json());
+          // console.log('notificationRes: ', notificationRes);
+          // console.log('notificationRes: ', notificationRes.ok);
+          // console.log('notificationRes: ', await notificationRes.json());
         }
       }
     }
@@ -180,9 +180,8 @@ export async function deleteSession({ idToken, fcmTokens }: DeleteSessionType) {
     // (await cookies()).delete('session');
     // await clearUserData();
   } catch (error) {
-    const err = parseError(error);
-    console.error('Session deletion error:', err.message);
-    throw err;
+    // const err = parseError(error);
+    // console.error('Session deletion catch:', err.message);
   } finally {
     (await cookies()).delete('session');
     await clearUserData();
@@ -266,7 +265,7 @@ export async function getOrCreateUser({
               '192.168.100.100'
             : headers.get('x-forwarded-for')?.toString().split(',')[0] || null,
           ...userProviderData,
-          slug: `${generateSlug(user.displayName!)}-${user.uid.slice(0, 4)}-${user.uid.slice(-4)}`,
+          slug: generateSlug(user.displayName!, user.uid),
         };
 
         await Promise.all([
@@ -283,6 +282,18 @@ export async function getOrCreateUser({
 
 export async function logoutUser({ idToken, fcmTokens }: LogOutUserTye) {
   await deleteSession({ idToken, fcmTokens: fcmTokens });
+}
+
+export async function verifySession() {
+  try {
+    const sessionCookie = (await cookies()).get('session')?.value ?? '';
+    if (!sessionCookie) {
+      throw { message: 'No session or token provided' };
+    }
+    return (await serverAuth.verifySessionCookie(sessionCookie, true)).uid;
+  } catch (error) {
+    throw parseError(error).message;
+  }
 }
 
 interface LogOutUserTye {
