@@ -8,7 +8,8 @@ import './globals.css';
 import Footer from './components/Footer/Footer';
 import Header from './components/Header';
 import { getAppData } from './utils/utils';
-import { ToastContainer } from 'react-toastify';
+import { ToastContainer } from "react-toastify/unstyled";
+import 'react-toastify/ReactToastify.css';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
     title: 'Samuday Mela',
     description:
       'A space for **networking, learning, growth, and exciting competitions**. Join us to expand your knowledge and build lifelong connections!',
-    url: 'https://samuday-mela-user.vercel.app',
+    url: 'https://samuday-mela-user.vercel.app/',
     siteName: 'Samuday Mela',
     images: [
       {
