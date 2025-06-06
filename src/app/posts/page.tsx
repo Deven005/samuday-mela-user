@@ -8,18 +8,75 @@ import { useRouter } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
 import Image from 'next/image';
 import { Button } from '../components/Button/Button';
+import { useUserStore } from '../stores/user/userStore';
+import { auth, firestore } from '../config/firebase.config';
+import { doc, increment, Timestamp, writeBatch } from 'firebase/firestore';
 
 const Posts = () => {
   const router = useRouter();
-  const posts = usePostStore(useShallow((state) => state.posts));
-  const listenPostChanges = usePostStore(useShallow((state) => state.listenPostChanges));
+  const { posts, listenPostChanges, handleShare, toggleLike, getLikeStatus, clearLikes } =
+    usePostStore(useShallow((state) => state));
+  const { user } = useUserStore(useShallow((state) => state));
   const [mediaIndexes, setMediaIndexes] = useState<Record<string, number>>({});
   const otherUsers = useOtherUserStore(useShallow((state) => state.otherUsers));
 
   useEffect(() => {
     const unsubscribe = listenPostChanges();
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      syncLikes()
+        .then((res) => {})
+        .catch((e) => console.error('Error syncLikes post'));
+    };
   }, [listenPostChanges]);
+
+  const syncLikes = async () => {
+    const { liked, unliked } = getLikeStatus();
+
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const batch = writeBatch(firestore);
+
+    liked.forEach((postId) => {
+      const postRef = doc(firestore, 'posts', postId);
+      batch.set(postRef, {
+        likesCount: increment(1),
+      });
+
+      const likeRef = doc(firestore, 'posts', postId, 'postLikes', user.uid);
+      batch.set(likeRef, {
+        userId: user.uid,
+        actionTime: Timestamp.now(),
+      });
+    });
+
+    unliked.forEach((postId) => {
+      const postRef = doc(firestore, 'posts', postId);
+      batch.set(postRef, {
+        likesCount: increment(-1),
+      });
+
+      const likeRef = doc(firestore, 'posts', postId, 'postLikes', user.uid);
+      batch.delete(likeRef);
+    });
+
+    try {
+      await batch.commit();
+      clearLikes();
+      console.log('✅ Synced likes/unlikes');
+    } catch (error) {
+      console.error('🔥 Failed to sync likes to Firestore:', error);
+    }
+  };
+
+  useEffect(() => {
+    const handleUnload = async () => {
+      await syncLikes();
+    };
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
+  }, []);
 
   const handleMediaChange = (postId: string, direction: 'prev' | 'next', total: number) => {
     setMediaIndexes((prev) => {
@@ -34,7 +91,7 @@ const Posts = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 relative bg-base-200 text-base-content py-12 mt-auto border-t border-base-300 transition-colors duration-300">
+    <div className="container mx-auto px-4 relative bg-base-200 text-base-content py-6 mt-auto border-t border-base-300 transition-colors duration-300">
       {/* Add Post Button */}
       <div className="fixed bottom-6 right-6 z-50">
         <Button
@@ -58,14 +115,11 @@ const Posts = () => {
 
             return (
               <StaggeredGridItem key={post.postId} index={index}>
-                <div className="bg-base-200 border border-base-300 rounded-xl shadow-2xl p-4 m-4 transition-transform hover:scale-[1.02] duration-300">
+                <div className="bg-base-100 border border-base-300 rounded-xl shadow-xl p-3 mx-2 transition-transform duration-300 hover:scale-[1.01]">
                   {/* User Info */}
                   {postUser && (
-                    <Link
-                      href={`/user/${postUser.slug}`}
-                      className="flex items-center space-x-3 mb-3 group"
-                    >
-                      <div className="relative w-10 h-10">
+                    <Link href={`/user/${postUser.slug}`} className="flex items-center gap-3 mb-2">
+                      <div className="relative w-9 h-9">
                         <Image
                           src={
                             postUser.photoURL ??
@@ -73,93 +127,83 @@ const Posts = () => {
                               postUser?.displayName ?? 'User',
                             )}&rounded=true&background=0D8ABC&color=fff`
                           }
-                          alt={postUser.displayName ?? 'User Avatar'}
+                          alt="User Avatar"
                           fill
-                          className="rounded-full object-cover border shadow-sm transition-all duration-200 group-hover:shadow-md"
+                          className="rounded-full object-cover border shadow-sm"
                         />
                       </div>
-                      <span className="text-sm font-semibold text-base-content group-hover:text-primary transition-colors duration-200">
+                      <span className="text-sm font-semibold text-base-content hover:text-primary transition">
                         {postUser.displayName}
                       </span>
                     </Link>
                   )}
 
-                  {/* Post Title */}
-                  {post.description && (
-                    <p className="text-sm text-base-content leading-snug mt-3">{post.title}</p>
-                  )}
-
-                  {/* Post Content */}
-                  {post.description && (
-                    <p className="text-sm text-base-content leading-snug mt-3">
-                      {post.description}
-                    </p>
-                  )}
+                  {/* Title & Description */}
+                  <div className="space-y-1 mb-2">
+                    {post.title && (
+                      <p className="text-base-content text-sm font-medium">{post.title}</p>
+                    )}
+                    {post.description && (
+                      <p className="text-base-content text-sm">{post.description}</p>
+                    )}
+                    {post.isEdited && <p className="text-xs italic text-warning">Edited</p>}
+                  </div>
 
                   {/* Hashtags */}
                   {post.hashtags.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {post.hashtags.map((hashtag, idx) => (
-                        <Link href={`hashtags/${hashtag}`} key={`${hashtag}-${idx}`}>
-                          <span className="badge badge-outline badge-primary text-xs">
-                            #{hashtag}
+                      {post.hashtags.map((tag, idx) => (
+                        <Link key={idx} href={`/hashtags/${tag}`}>
+                          <span className="badge badge-sm badge-outline badge-primary text-xs">
+                            #{tag}
                           </span>
                         </Link>
                       ))}
                     </div>
                   )}
 
-                  {/* Edited Tag */}
-                  {post.isEdited && (
-                    <div className="text-xs italic text-warning mt-2">Edited Post</div>
-                  )}
-
                   {/* Media Display */}
                   {currentMedia && (
-                    <Link href={`posts/${post.postSlug}`}>
-                      <div className="relative group mt-3">
+                    <Link href={`/posts/${post.postSlug}`}>
+                      <div className="relative mt-3 group rounded-md overflow-hidden">
                         <div className="relative w-full h-64">
                           {currentMedia.fileType.includes('image') ? (
                             <Image
-                              id={`${currentMedia.postId}-media-${currentMedia.fileUrl}`}
-                              src={
-                                currentMedia.fileType.includes('image')
-                                  ? currentMedia.fileUrl
-                                  : currentMedia.thumbnailUrl
-                              }
-                              alt={`media-${currentIndex}`}
+                              src={currentMedia.fileUrl}
+                              alt="Post media"
                               fill
                               className="object-fill rounded"
-                              fetchPriority="high"
+                              fetchPriority={index === 0 ? 'high' : 'auto'}
+                              loading={index === 0 ? 'eager' : 'lazy'}
                             />
                           ) : (
                             <video
                               controls
                               src={currentMedia.fileUrl}
-                              className="object-fill rounded h-64"
+                              className="object-fill w-full h-64 rounded"
                               poster={currentMedia.thumbnailUrl}
-                              id={`${currentMedia.postId}-media-${currentMedia.fileUrl}`}
                             />
                           )}
                         </div>
 
+                        {/* Media Navigation */}
                         {post.mediaFiles.length > 1 && (
                           <>
                             <button
-                              onClick={() =>
-                                handleMediaChange(post.postId, 'prev', post.mediaFiles.length)
-                              }
-                              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-base-300 bg-opacity-60 hover:bg-opacity-90 text-base-content p-2 rounded-full transition-opacity opacity-0 group-hover:opacity-100"
-                              aria-label="Previous media"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleMediaChange(post.postId, 'prev', post.mediaFiles.length);
+                              }}
+                              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition"
                             >
                               ❮
                             </button>
                             <button
-                              onClick={() =>
-                                handleMediaChange(post.postId, 'next', post.mediaFiles.length)
-                              }
-                              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-base-300 bg-opacity-60 hover:bg-opacity-90 text-base-content p-2 rounded-full transition-opacity opacity-0 group-hover:opacity-100"
-                              aria-label="Next media"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleMediaChange(post.postId, 'next', post.mediaFiles.length);
+                              }}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition"
                             >
                               ❯
                             </button>
@@ -167,6 +211,32 @@ const Posts = () => {
                         )}
                       </div>
                     </Link>
+                  )}
+
+                  {/* Like / Comment / Share Buttons */}
+                  {user && (
+                    <div className="mt-4 flex items-center justify-around text-sm text-base-content">
+                      <Button
+                        onClick={() => toggleLike(post.postId)}
+                        className="flex items-center gap-1 hover:text-error transition active:scale-90 border border-gray-300"
+                      >
+                        ❤️ <span>{0 + (getLikeStatus().liked.includes(post.postId) ? 1 : 0)}</span>
+                      </Button>
+
+                      <Button
+                        onClick={() => handleShare(post)}
+                        className="flex items-center gap-1 hover:text-success transition active:scale-90 border border-gray-300"
+                      >
+                        💬 <span>{0}</span>
+                      </Button>
+
+                      <Button
+                        onClick={() => handleShare(post)}
+                        className="flex items-center gap-1 hover:text-success transition active:scale-90 border border-gray-300"
+                      >
+                        🔄 <span>Share</span>
+                      </Button>
+                    </div>
                   )}
                 </div>
               </StaggeredGridItem>

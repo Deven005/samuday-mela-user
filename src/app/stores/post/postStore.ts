@@ -50,6 +50,7 @@ export interface Post {
   postId: string;
   userId: string;
   postSlug: string;
+  likesCount: number;
 }
 
 export interface AddPostType {
@@ -77,8 +78,12 @@ interface PostStore {
   lastDoc: QueryDocumentSnapshot<DocumentData, DocumentData> | null;
   posts: Post[] | null;
   listeners: Unsubscribe[];
-  // progress: number;
   uploadProgress: UploadProgress | undefined;
+  likedPosts: Set<string>;
+  unlikedPosts: Set<string>;
+  toggleLike: (postId: string) => void;
+  getLikeStatus: () => { liked: string[]; unliked: string[] };
+  clearLikes: () => void;
   setHasHydrated: () => void;
   setLoading: (loading: boolean) => void;
   setUploadProgress: (uploadProgress: UploadProgress) => void;
@@ -87,6 +92,7 @@ interface PostStore {
   addPost: (post: AddPostType, onSuccess?: () => void) => Promise<void>;
   updatePost: (post: Post) => void;
   removePost: (postId: string) => void;
+  handleShare: (post: Post) => void;
   loadPosts: () => void;
   listenPostChanges: () => () => void;
   reset: () => void;
@@ -106,6 +112,8 @@ export const usePostStore = create<PostStore>()(
       listeners: [],
       progress: 0,
       uploadProgress: undefined,
+      likedPosts: new Set(),
+      unlikedPosts: new Set(),
       setHasHydrated: () => set({ _hasHydrated: true }),
       setLoading: (loading) => set({ loading: loading }),
       setUploading: (uploading) => set({ uploading: uploading }),
@@ -234,7 +242,7 @@ export const usePostStore = create<PostStore>()(
             title: post.title,
             description: post.description,
             hashtags: post.hashtags,
-            postSlug: `${generateSlug(post.title)}-${user.uid.slice(0, 4)}-${user.uid.slice(-4)}`,
+            postSlug: generateSlug(post.title, user.uid),
             createdAt: currentTimestamp,
             updatedAt: currentTimestamp,
             lastEngagementAt: currentTimestamp,
@@ -244,6 +252,7 @@ export const usePostStore = create<PostStore>()(
             isPrivate: false,
             isVisible: true,
             ipAddress: await getIpAddress(),
+            likesCount: 0,
           };
 
           if (post.mediaFiles && post.mediaFiles.length > 0) {
@@ -320,6 +329,46 @@ export const usePostStore = create<PostStore>()(
           });
         } catch (error) {
           console.log('err: ', error);
+        }
+      },
+      toggleLike: (postId: string) => {
+        const { likedPosts, unlikedPosts } = get();
+        const likedSet =
+          likedPosts instanceof Set
+            ? new Set(likedPosts)
+            : new Set<string>(Object.values(likedPosts));
+
+        const unLikedSet =
+          unlikedPosts instanceof Set
+            ? new Set(unlikedPosts)
+            : new Set<string>(Object.values(unlikedPosts));
+
+        if (likedSet.has(postId)) {
+          likedSet.delete(postId);
+          unLikedSet.add(postId);
+        } else {
+          likedSet.add(postId);
+          unLikedSet.delete(postId);
+        }
+
+        set({ likedPosts: likedSet, unlikedPosts: unLikedSet });
+      },
+      getLikeStatus: () => {
+        const { likedPosts, unlikedPosts } = get();
+        return {
+          liked: likedPosts instanceof Set ? Array.from(likedPosts) : Object.values(likedPosts),
+          unliked:
+            unlikedPosts instanceof Set ? Array.from(unlikedPosts) : Object.values(unlikedPosts),
+        };
+      },
+      clearLikes: () => set({ likedPosts: new Set(), unlikedPosts: new Set() }),
+      handleShare: (post) => {
+        const url = `${window.location.origin}/posts/${post.postSlug}`;
+        if (navigator.share) {
+          navigator.share({ title: post.title || 'Check this out!', url });
+        } else {
+          navigator.clipboard.writeText(url);
+          alert('Link copied to clipboard!');
         }
       },
     }),

@@ -30,6 +30,23 @@ export type PostDetailsProps = {
   userId: string;
 };
 
+type CachedPost = {
+  slug: string;
+  updatedAt: Date;
+};
+
+let postsCache: {
+  data: CachedPost[];
+  timestamp: number;
+} | null = null;
+
+let usersCache: {
+  data: CachedPost[];
+  timestamp: number;
+} | null = null;
+
+const CACHE_DURATION = 1000 * 60 * 5; // 5 minutes
+
 export async function getPostSlug(slug: string) {
   try {
     const now = Date.now();
@@ -44,7 +61,7 @@ export async function getPostSlug(slug: string) {
       .limit(1)
       .get();
 
-    if (postDocs.empty) throw new Error('No user found');
+    if (postDocs.empty) throw new Error('No post found');
     const post = postDocs.docs[0].data() as PostDetailsProps;
     // ✅ 3. Only keep public-safe fields
     const postData = {
@@ -62,9 +79,52 @@ export async function getPostSlug(slug: string) {
     cache[slug] = { data: postData, timestamp: now };
     return postData;
   } catch (error) {
-    console.error('Error fetching user by slug!');
+    console.error('Error fetching post by slug!');
     throw error;
   }
+}
+
+export async function getAllPostSlugs(): Promise<CachedPost[]> {
+  const now = Date.now();
+
+  if (postsCache && now - postsCache.timestamp < CACHE_DURATION) {
+    return postsCache.data;
+  }
+
+  console.log('fetching all post slugs');
+  const snapshot = await serverFirestore.collection('posts').get();
+  const data = snapshot.docs.map((doc) => ({
+    slug: doc.data().postSlug,
+    updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+  }));
+
+  postsCache = {
+    data,
+    timestamp: now,
+  };
+
+  return data;
+}
+
+export async function getAllUserSlugs(): Promise<CachedPost[]> {
+  const now = Date.now();
+
+  if (usersCache && now - usersCache.timestamp < CACHE_DURATION) {
+    return usersCache.data;
+  }
+
+  const snapshot = await serverFirestore.collection('Users').get();
+  const data = snapshot.docs.map((doc) => ({
+    slug: doc.data().slug,
+    updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+  }));
+
+  usersCache = {
+    data,
+    timestamp: now,
+  };
+
+  return data;
 }
 
 export async function getPostsByUserId(userId: string): Promise<PostDetailsProps[]> {
