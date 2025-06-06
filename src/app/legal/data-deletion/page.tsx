@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 export default function DataDeletionPage() {
   return (
     <main className="max-w-5xl mx-auto p-6 space-y-6 bg-base-100 text-base-content">
-      <h1 className="text-3xl font-bold text-primary">Data Deletion Instructions</h1>
+      <h1 className="text-3xl font-bold text-primary">Data Deletion Instructions | Coming later!</h1>
       <p className="text-base-content/70">Last updated: May 25, 2025</p>
 
       <section className="space-y-4">
