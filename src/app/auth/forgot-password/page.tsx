@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { auth } from '@/app/config/firebase.config';
 import { Button } from '@/app/components/Button/Button';
 import InputField from '@/app/components/Input/InputField';
+import { showCustomToast } from '@/app/components/showCustomToast';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -21,9 +22,19 @@ export default function ForgotPassword() {
       auth.languageCode = 'hi';
       await sendPasswordResetEmail(auth, email);
       //   toast.success('Password reset email sent!');
+      showCustomToast({
+        title: 'Email is sent!',
+        message: 'Password reset email sent!',
+        type: 'success',
+      });
       router.push('/sign-in');
     } catch (error: any) {
       //   toast.error(error.message || 'Failed to send reset email');
+      showCustomToast({
+        title: 'Email is sent!',
+        message: error.message || 'Failed to send reset email',
+        type: 'error',
+      });
     } finally {
       setLoading(false);
     }
@@ -34,7 +45,7 @@ export default function ForgotPassword() {
       <div className="max-w-md w-full bg-base-100 shadow-lg rounded-2xl p-8 space-y-6">
         <div className="flex flex-col items-center">
           <Image src="/forgot-password.svg" alt="Forgot password" width={120} height={120} />
-          <h2 className="mt-4 text-2xl font-bold text-center text-base-content text-lg">
+          <h2 className="mt-4 text-2xl font-bold text-center text-base-content">
             Forgot your password?
           </h2>
           <p className="text-sm text-center text-base-content/70">
