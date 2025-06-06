@@ -1,5 +1,11 @@
 import Image from 'next/image';
 import { getAppData } from '../utils/utils';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'About Us | Samuday Mela',
+  description: 'About us page for more details!',
+};
 
 export default async function AboutPage() {
   const appData = await getAppData();
@@ -19,9 +25,10 @@ export default async function AboutPage() {
               fill
               className="object-fill"
               draggable={false}
+              fetchPriority='high'
             />
           </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold">{appData?.appName}</h1>
+          <h1 className="text-4xl md:text-5xl font-extrabold">About {appData?.appName}</h1>
           <p className="text-xl md:text-2xl text-base-content/70">{appData?.tagline}</p>
           <p className="text-lg leading-relaxed">{appData?.description}</p>
         </div>
