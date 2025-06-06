@@ -19,9 +19,11 @@ const PUBLIC_PATHS = [
   '/auth/google/callback',
   '/auth/facebook/callback',
   '/user/',
+  '/legal',
   '/legal/',
   '/robots.txt',
   '/hashtags',
+  '/communities',
 ];
 const ROOT_PATH = '/';
 
@@ -34,15 +36,43 @@ export async function middleware(request: NextRequest) {
     PUBLIC_PATHS.includes(pathname) ||
     pathname.startsWith('/user/') ||
     pathname.startsWith('/legal/') ||
-    pathname.startsWith('/sitemap')
+    pathname.startsWith('/sitemap') ||
+    pathname.startsWith('/posts/') ||
+    pathname.startsWith('/communities/')
   ) {
+    // Optional: deny access to reserved usernames
+    const reserved = [
+      'admin',
+      'profile',
+      'login',
+      'signup',
+      'settings',
+      'vendor',
+      'partner',
+      'add',
+      'update',
+      'delete',
+    ];
+
     if (pathname.startsWith('/user/')) {
       const slug = pathname.split('/user/')[1];
-      // Optional: deny access to reserved usernames
-      const reserved = ['admin', 'profile', 'login', 'signup', 'settings', 'vendor', 'partner'];
-      if (reserved.includes(slug)) {
+      if (reserved.includes(slug) || slug.length < 8) {
         return NextResponse.redirect(new URL('/404', request.url));
       }
+    } else if (pathname.startsWith('/posts/')) {
+      const slug = pathname.split('/posts/')[1];
+      if (reserved.includes(slug) || slug.length < 8) {
+        return NextResponse.redirect(new URL('/404', request.url));
+      }
+    } else if (pathname.startsWith('/communities/')) {
+      const slug = pathname.split('/communities/')[1];
+      if (reserved.includes(slug) || slug.length < 8) {
+        return NextResponse.redirect(new URL('/404', request.url));
+      }
+    }
+    if (pathname.startsWith('/sitemap')) {
+      const ua = request.headers.get('user-agent');
+      console.log('[SITEMAP] Requested by:', ua);
     }
     return NextResponse.next();
   }
