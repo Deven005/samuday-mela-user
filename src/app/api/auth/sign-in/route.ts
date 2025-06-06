@@ -1,7 +1,7 @@
 // app/api/auth/sign-in/route.ts
 import { serverAuth, serverFirestore } from '@/app/config/firebase.server.config';
 import { createSession, getOrCreateUser } from '@/app/utils/auth/auth';
-import { getUserData, removeUndefinedDeep, rsaDecrypt } from '@/app/utils/utils';
+import { getUserData, parseError, removeUndefinedDeep, rsaDecrypt } from '@/app/utils/utils';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -10,6 +10,10 @@ export async function POST(req: NextRequest) {
   try {
     const { origin } = req.nextUrl;
     const { encryptedData } = await req.json();
+
+    if (!encryptedData || encryptedData === undefined) {
+      throw { message: 'No data found!', code: 'no-data', status: 400 };
+    }
 
     const { email, password, fcmTokens } = JSON.parse(rsaDecrypt(encryptedData));
 
@@ -82,10 +86,11 @@ export async function POST(req: NextRequest) {
       userData,
     });
   } catch (error: any) {
-    console.error('sign-in failed:', error);
+    const err = parseError(error);
+    console.error('sign-in failed:', err.message);
     return NextResponse.json(
-      { error: error.message ?? 'Sign-in failed!' },
-      { status: error.status ?? 401 },
+      { error: err.message ?? 'Sign-in failed!', code: err.code },
+      { status: err.status ?? 401 },
     );
   }
 }
