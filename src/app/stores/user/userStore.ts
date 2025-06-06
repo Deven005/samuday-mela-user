@@ -529,7 +529,11 @@ export const useUserStore = create<UserState>()(
         reset: () => {
           // Clear all listeners manually if needed (e.g., on component unmount)
           set((state) => {
-            state.listeners.forEach((unsubscribe) => unsubscribe());
+            try{
+              state.listeners.forEach((unsubscribe) => unsubscribe());
+            }catch(e){
+              console.log('rest catch');
+            }
             return { fcmToken: '' };
           });
         },
