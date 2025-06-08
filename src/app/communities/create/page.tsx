@@ -1,5 +1,4 @@
 // /app/community/create/page.tsx
-
 import { createCommunityAction } from './actions';
 
 export default function CreateCommunityPage() {
@@ -14,12 +13,16 @@ export default function CreateCommunityPage() {
           placeholder="Community Name"
           required
           className="w-full border px-4 py-2 rounded"
+          maxLength={20}
+          minLength={5}          
         />
         <textarea
           name="description"
           placeholder="Description"
           required
           className="w-full border px-4 py-2 rounded"
+          maxLength={200}
+          minLength={5}
         />
         <select name="visibility" className="w-full border px-4 py-2 rounded">
           <option value="public">Public</option>
