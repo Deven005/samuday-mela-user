@@ -62,7 +62,7 @@ export async function createCommunity(formData: FormData) {
 
     // Create community
     const communityDoc = serverFirestore.collection(communitiesCollName).doc();
-    const slug = generateSlug(`${name}-${description}`, communityDoc.id);
+    const slug = generateSlug(name, communityDoc.id);
     const currentTimestamp = Timestamp.now();
 
     await communityDoc.set(
