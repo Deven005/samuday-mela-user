@@ -185,10 +185,9 @@ export const useUserStore = create<UserState>()(
         // Sign-up function to create a new user and store it in Firestore
         signUp: async (email, password, userData, onSuccess?: () => void) => {
           const { runAfterSignUp, fcmToken, setFcmToken } = get();
-          // const signUpTrace = trace(performance, 'sign_up_with_custom_token_time');
-
+          const signUpTrace = trace(performance, 'email_pass_sign_up_custom_token_time');
           try {
-            // signUpTrace.start();
+            signUpTrace.start();
 
             // console.log('fcmToken: ', fcmToken);
             const updatedFcmToken = await getFCMToken(fcmToken, true);
@@ -208,7 +207,6 @@ export const useUserStore = create<UserState>()(
               body: JSON.stringify({ encryptedData: await encryptJsonPayloadClient(signUpBody) }),
             });
 
-            console.log('user sign-up : ', signUpRes);
             const { message, customToken, error } = signUpRes;
             var updatedUserData = signUpRes['userData'];
 
@@ -218,12 +216,12 @@ export const useUserStore = create<UserState>()(
 
             // const user: User = (await createUserWithEmailAndPassword(auth, email, password)).user;
             await runAfterSignUp(authUser, updatedUserData, onSuccess);
-            // logEvent(analytics, 'sign_up', { method: 'sign_up_with_custom_token_time' });
+            logEvent(analytics, 'sign_up', { method: 'email_pass_sign_up_custom_token' });
           } catch (err) {
             console.error('Error signing up:', err);
             throw err;
           } finally {
-            // signUpTrace.stop();
+            signUpTrace.stop();
           }
         },
         // signUpWithGoogle: async (onSuccess?: () => void) => {
@@ -280,7 +278,8 @@ export const useUserStore = create<UserState>()(
         // Sign-in function to authenticate the user
         signIn: async (email, password, onSuccess?: () => void) => {
           const { runAfterSignIn, fcmToken, setFcmToken } = get();
-          const signInTrace = trace(performance, 'sign_in_with_custom_token_time');
+          const signInTrace = trace(performance, 'email_pass_sign_in_custom_token_time');
+
           try {
             signInTrace.start();
 
@@ -312,7 +311,7 @@ export const useUserStore = create<UserState>()(
 
             // const userCredential = await signInWithEmailAndPassword(auth, email, password);
             await runAfterSignIn(authUser, userData, onSuccess);
-            // logEvent(analytics, 'login', { method: 'email_password' });
+            logEvent(analytics, 'login', { method: 'email_pass_sign_in_custom_token' });
           } catch (err: any) {
             console.error('Error signing in:', err);
             throw err;
@@ -322,49 +321,88 @@ export const useUserStore = create<UserState>()(
         },
         // Sign-in function with Google authentication
         signInWithGoogle: async (customToken, onSuccess?: () => void) => {
-          const { runAfterSignIn, fetchUserData, reloadUser } = get();
+          const { runAfterSignIn, fetchUserData, reloadUser, fcmToken, setFcmToken } = get();
 
-          // const googleTrace = trace(performance, 'google_sign_in_time');
-
+          const googleTrace = trace(performance, 'google_sign_in_custom_token_time');
           try {
-            // googleTrace.start();
+            googleTrace.start();
             const googleAuthUser = (await signInWithCustomToken(auth, customToken)).user;
+
+            try {
+              const token = await getFCMToken(fcmToken, true);
+              if (token && typeof token === 'string' && token.trim() !== '') {
+                await fetchWithAppCheck(
+                  '/api/fcm/subscribe-fcm',
+                  await googleAuthUser.getIdToken(),
+                  {
+                    method: 'POST',
+                    body: JSON.stringify({ token, topic: googleAuthUser.uid }),
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                  },
+                );
+                setFcmToken(token);
+              }
+            } catch (error) {
+              console.error('sub fcm err: ');
+            }
 
             await runAfterSignIn(
               googleAuthUser,
               await fetchUserData(googleAuthUser.uid),
               onSuccess,
             );
-            logEvent(analytics, 'login', { method: 'google' });
+            logEvent(analytics, 'login', { method: 'google_sign_in_custom_token' });
             await reloadUser();
           } catch (err) {
             console.error('Error signing in with Google:', err);
             throw err;
           } finally {
-            // googleTrace.stop();
+            googleTrace.stop();
           }
         },
         signInWithFacebook: async (customToken, onSuccess?: () => void) => {
-          const { runAfterSignIn, fetchUserData, reloadUser } = get();
+          const { runAfterSignIn, fetchUserData, reloadUser, fcmToken, setFcmToken } = get();
 
-          // const googleTrace = trace(performance, 'google_sign_in_time');
+          const fbTrace = trace(performance, 'facebook_sign_in_custom_token_time');
 
           try {
-            // googleTrace.start();
+            fbTrace.start();
             const facebookAuthUser = (await signInWithCustomToken(auth, customToken)).user;
+
+            try {
+              const token = await getFCMToken(fcmToken, true);
+              if (token && typeof token === 'string' && token.trim() !== '') {
+                await fetchWithAppCheck(
+                  '/api/fcm/subscribe-fcm',
+                  await facebookAuthUser.getIdToken(),
+                  {
+                    method: 'POST',
+                    body: JSON.stringify({ token, topic: facebookAuthUser.uid }),
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                  },
+                );
+                setFcmToken(token);
+              }
+            } catch (error) {
+              console.error('sub fcm err: ');
+            }
 
             await runAfterSignIn(
               facebookAuthUser,
               await fetchUserData(facebookAuthUser.uid),
               onSuccess,
             );
-            logEvent(analytics, 'login', { method: 'facebook' });
+            logEvent(analytics, 'login', { method: 'facebook_sign_in_custom_token' });
             await reloadUser();
           } catch (err) {
             console.error('Error signing in with Google:', err);
             throw err;
           } finally {
-            // googleTrace.stop();
+            fbTrace.stop();
           }
         },
         runAfterSignIn: async (user: User, userData, onSuccess?: () => void) => {
