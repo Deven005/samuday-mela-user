@@ -8,7 +8,7 @@ import './globals.css';
 import Footer from './components/Footer/Footer';
 import Header from './components/Header';
 import { getAppData } from './utils/utils';
-import { ToastContainer } from "react-toastify/unstyled";
+import { ToastContainer } from 'react-toastify/unstyled';
 import 'react-toastify/ReactToastify.css';
 
 const geistSans = Geist({
@@ -81,7 +81,7 @@ export const metadata: Metadata = {
     date: true,
     address: true,
   },
-  verification: { google: 'rgjBxVJRptWSrcmArSGZOR4JR3tZNqq-M68BznneceU' },
+  verification: { google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION },
   twitter: {
     card: 'summary_large_image',
     title: 'Samuday Mela',
