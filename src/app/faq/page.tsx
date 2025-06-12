@@ -1,3 +1,7 @@
+export const metadata = {
+  title: 'FAQ | Samuday Mela',
+};
+
 export default function FaqPage() {
   const faqItems = [
     {

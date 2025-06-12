@@ -10,6 +10,10 @@ import Image from 'next/image';
 import { Button } from '../components/Button/Button';
 import LanguageSelector from '../components/languageSelector';
 
+export const metadata = {
+  title: 'User Profile | Samuday Mela',
+};
+
 const UserProfile = () => {
   const { user, updateUserProfilePic, loadingProvider, unlinkUserProvider } = useUserStore(
     useShallow((state) => state),
@@ -220,7 +224,7 @@ const UserProfile = () => {
                           {currentMedia && (
                             <div className="relative group">
                               {currentMedia.fileType === 'image' ? (
-                                <img
+                                <Image
                                   src={currentMedia.fileUrl}
                                   alt={`media-${currentIndex}`}
                                   className="w-full object-cover rounded max-h-[250px]"
@@ -230,6 +234,7 @@ const UserProfile = () => {
                                   controls
                                   src={currentMedia.fileUrl}
                                   className="w-full object-cover rounded max-h-[250px]"
+                                  poster={currentMedia.thumbnailUrl}
                                 />
                               )}
 

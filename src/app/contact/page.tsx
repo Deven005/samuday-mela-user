@@ -3,6 +3,10 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
+export const metadata = {
+  title: 'Contact | Samuday Mela',
+};
+
 export default async function ContactPage() {
   const cookieStore = await cookies();
   const success = cookieStore.get('contactSuccess');

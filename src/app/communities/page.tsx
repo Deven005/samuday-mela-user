@@ -1,8 +1,11 @@
 import Link from 'next/link';
 import { CommunityType, getCommunities } from '../utils/communities/communities';
 import { formatLocalDate } from '../utils/utils';
-import { cookies } from 'next/headers';
 import { verifySession } from '../utils/auth/auth';
+
+export const metadata = {
+  title: 'Communities | Samuday Mela',
+};
 
 const Communities = async () => {
   let communities: CommunityType[];

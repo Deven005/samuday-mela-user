@@ -1,6 +1,10 @@
 // /app/community/create/page.tsx
 import { createCommunityAction } from './actions';
 
+export const metadata = {
+  title: 'Create Community | Samuday Mela',
+};
+
 export default function CreateCommunityPage() {
   return (
     <div className="max-w-xl mx-auto py-10 px-4 text-base-content">
@@ -14,7 +18,7 @@ export default function CreateCommunityPage() {
           required
           className="w-full border px-4 py-2 rounded"
           maxLength={20}
-          minLength={5}          
+          minLength={5}
         />
         <textarea
           name="description"

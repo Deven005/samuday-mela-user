@@ -9,6 +9,10 @@ import TextAreaField from '@/app/components/Input/TextAreaField';
 import { Button } from '@/app/components/Button/Button';
 import { showCustomToast } from '@/app/components/showCustomToast';
 
+export const metadata = {
+  title: 'Edit User Profile | Samuday Mela',
+};
+
 const EditProfile = () => {
   // const user = useUserStore(useShallow((state) => state.user));
   const { user, updateUser } = useUserStore((state) => state);

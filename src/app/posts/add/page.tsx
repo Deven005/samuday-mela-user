@@ -8,6 +8,10 @@ import { useShallow } from 'zustand/shallow';
 import { Button } from '@/app/components/Button/Button';
 import { formatHumanFileSize } from '@/app/utils/uploadFiles';
 
+export const metadata = {
+  title: 'Add Post | Samuday Mela',
+};
+
 const AddPostPage = () => {
   const router = useRouter();
 

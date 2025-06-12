@@ -2,7 +2,7 @@
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Legal | YourApp',
+  title: 'Legal | Samuday Mela',
 };
 
 export default function LegalIndexPage() {

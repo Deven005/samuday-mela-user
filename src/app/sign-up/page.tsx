@@ -5,6 +5,10 @@ import { useUserStore } from '../stores/user/userStore';
 import InputField from '../components/Input/InputField';
 import { Button } from '../components/Button/Button';
 
+export const metadata = {
+  title: 'Sign-Up | Samuday Mela',
+};
+
 const SignUp = () => {
   // const { ready, hydrated } = useRedirectIfAuthenticated();
   const router = useRouter();
