@@ -10,9 +10,9 @@ import Image from 'next/image';
 import { Button } from '../components/Button/Button';
 import LanguageSelector from '../components/languageSelector';
 
-export const metadata = {
-  title: 'User Profile | Samuday Mela',
-};
+// export const metadata = {
+//   title: 'User Profile | Samuday Mela',
+// };
 
 const UserProfile = () => {
   const { user, updateUserProfilePic, loadingProvider, unlinkUserProvider } = useUserStore(

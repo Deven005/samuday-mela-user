@@ -12,9 +12,9 @@ import { useUserStore } from '../stores/user/userStore';
 import { auth, firestore } from '../config/firebase.config';
 import { doc, increment, Timestamp, writeBatch } from 'firebase/firestore';
 
-export const metadata = {
-  title: 'Posts | Samuday Mela',
-};
+// export const metadata = {
+//   title: 'Posts | Samuday Mela',
+// };
 
 const Posts = () => {
   const router = useRouter();

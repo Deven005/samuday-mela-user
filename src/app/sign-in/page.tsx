@@ -10,9 +10,9 @@ import { showCustomToast } from '../components/showCustomToast';
 import { auth } from '../config/firebase.config';
 import { resetAllStores } from '../utils/resetAllStores';
 
-export const metadata = {
-  title: 'Sign-In | Samuday Mela',
-};
+// export const metadata = {
+//   title: 'Sign-In | Samuday Mela',
+// };
 
 const SignIn = () => {
   const { signIn, user, _hasHydrated } = useUserStore(useShallow((state) => state));
