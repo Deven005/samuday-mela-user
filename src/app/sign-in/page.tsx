@@ -7,6 +7,12 @@ import InputField from '../components/Input/InputField';
 import { Button } from '../components/Button/Button';
 import { useShallow } from 'zustand/shallow';
 import { showCustomToast } from '../components/showCustomToast';
+import { auth } from '../config/firebase.config';
+import { resetAllStores } from '../utils/resetAllStores';
+
+export const metadata = {
+  title: 'Sign-In | Samuday Mela',
+};
 
 const SignIn = () => {
   const { signIn, user, _hasHydrated } = useUserStore(useShallow((state) => state));
@@ -16,12 +22,17 @@ const SignIn = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [firebaseUser, setFirebaseUser] = useState(auth.currentUser);
 
   useEffect(() => {
-    if (user) {
+    firebaseUser?.reload();
+    if (user && firebaseUser) {
       window.location.href = '/';
     }
-  }, [user, _hasHydrated]);
+    if (!firebaseUser) {
+      resetAllStores();
+    }
+  }, [user, _hasHydrated, firebaseUser]);
 
   const handleGoogleSignIn = async () => {
     setError(null);

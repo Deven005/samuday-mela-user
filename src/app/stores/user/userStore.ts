@@ -433,7 +433,10 @@ export const useUserStore = create<UserState>()(
 
               await reloadUser();
 
-              if (user === null) return;
+              if (user === null) {
+                resetAllStores();
+                return;
+              }
 
               if (user?.emailVerified != firebaseUser.emailVerified) {
                 user!.emailVerified = firebaseUser.emailVerified;
@@ -529,12 +532,12 @@ export const useUserStore = create<UserState>()(
         reset: () => {
           // Clear all listeners manually if needed (e.g., on component unmount)
           set((state) => {
-            try{
+            try {
               state.listeners.forEach((unsubscribe) => unsubscribe());
-            }catch(e){
+            } catch (e) {
               console.log('rest catch');
             }
-            return { fcmToken: '' };
+            return {};
           });
         },
         logoutUser: async () => {
@@ -549,7 +552,7 @@ export const useUserStore = create<UserState>()(
               }),
               signOut(auth), // Firebase logout
             ]);
-            localStorage.clear();
+            // localStorage.clear();
           } catch (err) {
             console.error('Error during logout:', err);
             throw err;
