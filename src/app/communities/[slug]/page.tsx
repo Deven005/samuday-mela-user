@@ -1,8 +1,10 @@
 // pages/communities/[slug].tsx
 import { verifySession } from '@/app/utils/auth/auth';
 import { CommunityType, getCommunityBySlug } from '@/app/utils/communities/communities';
-import { Timestamp } from 'firebase-admin/firestore';
+import { getCommunityMembersByCommunityId } from '@/app/utils/communities/communityEnrich';
+import { encryptJsonPayload, formatLocalDate } from '@/app/utils/utils';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default async function CommunityDetailsPage({
   params,
@@ -11,6 +13,7 @@ export default async function CommunityDetailsPage({
 }) {
   const { slug } = await params;
   const community: CommunityType = await getCommunityBySlug(slug);
+  const communityMembers = await getCommunityMembersByCommunityId(community.communityId);
   let userId = undefined;
   try {
     userId = await verifySession();
@@ -51,15 +54,36 @@ export default async function CommunityDetailsPage({
 
         {/* Action Buttons */}
         <div className="flex gap-2">
-          {community.isJoined || community.createdBy === userId ? (
+          {communityMembers.filter((member) => member.userId == userId).length > 0 ||
+          community.createdBy === userId ? (
             <>
               {community.createdBy !== userId && (
-                <button className="btn btn-outline btn-error btn-sm">Leave</button>
+                <form method="POST" action="/api/communities/leave">
+                  <input
+                    type="hidden"
+                    name="encryptedData"
+                    value={encryptJsonPayload({
+                      communityId: community.communityId,
+                    })}
+                  />
+                  <button className="btn btn-outline btn-error btn-sm">Leave</button>
+                </form>
               )}
               <button className="btn btn-outline btn-primary btn-sm">Invite</button>
             </>
           ) : (
-            <button className="btn btn-primary btn-sm">Join Community</button>
+            <form method="POST" action="/api/communities/join">
+              <input
+                type="hidden"
+                name="encryptedData"
+                value={encryptJsonPayload({
+                  communityId: community.communityId,
+                })}
+              />
+              <button type="submit" className="btn btn-primary btn-sm">
+                Join Community
+              </button>
+            </form>
           )}
         </div>
       </div>
@@ -74,11 +98,11 @@ export default async function CommunityDetailsPage({
             <span className="badge badge-info badge-outline lowercase">{community.visibility}</span>
           </div>
           <div>
-            <span className="font-semibold">Members:</span> {community.membersCount}
+            <span className="font-semibold">Member Count:</span> {communityMembers.length}
           </div>
           <div>
             <span className="font-semibold">Created On:</span>{' '}
-            {new Date((community.createdAt as Timestamp).toDate()).toLocaleDateString()}
+            {formatLocalDate(community.createdAt.toDate())}
           </div>
           <div>
             <span className="font-semibold">Owner:</span> {community.ownerName}
@@ -86,22 +110,73 @@ export default async function CommunityDetailsPage({
         </div>
       </div>
 
-      {/* Optional: Tabs for Posts / Members */}
-      <div className="mt-10">
-        <div role="tablist" className="tabs tabs-boxed">
-          <a role="tab" className="tab tab-active">
-            Posts
-          </a>
-          <a role="tab" className="tab">
-            Members
-          </a>
-        </div>
+      <div className="container mx-auto card bg-base-100 shadow-lg p-6 space-y-4 mt-4">
+        <h1 className="text-2xl font-bold text-base-content mb-4">Community Members</h1>
 
-        {/* Placeholder section for posts */}
-        <div className="mt-4">
-          <div className="text-center text-sm opacity-70">
-            (Posts or member list can go here based on selected tab)
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {communityMembers.map((member) => (
+            <div
+              key={member.userId}
+              className="bg-base-200 border border-base-300 rounded-xl p-4 shadow-md hover:shadow-xl transition-shadow ml-4"
+            >
+              <div className="flex items-center space-x-4">
+                <div className="w-14 h-14 relative">
+                  <Image
+                    src={
+                      member.photoURL ??
+                      `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                        member.displayName ?? 'User',
+                      )}&background=random&rounded=true`
+                    }
+                    alt="User Avatar"
+                    fill
+                    className="rounded-full object-cover"
+                    fetchPriority="auto"
+                  />
+                </div>
+                <div>
+                  <Link href={`/user/${member.slug}`}>
+                    <div>
+                      <h2 className="font-semibold text-base-content">{member.displayName}</h2>
+                      <p className="text-xs text-neutral-content">@{member.slug}</p>
+                    </div>
+                  </Link>
+                  {/* <p className="text-xs text-neutral-content">{member.story}</p> */}
+                  <p className="text-xs text-neutral-content capitalize">{member.role}</p>
+                </div>
+              </div>
+
+              {/* If admin or owner, show more */}
+              {/* {member.userId == userId && (
+                <div className="mt-4 text-sm text-base-content">
+                  <p>
+                    <strong>Status:</strong> {member.story}
+                  </p>
+                  <p>
+                    <strong>Joined:</strong> {formatLocalDate(member.joinedAt.toDate())}
+                  </p>
+
+                  <div className="mt-2">
+                    <strong>Permissions:</strong>
+                    <ul className="list-disc list-inside text-xs">
+                      {Object.entries(member.permissions).map(([key, val]) =>
+                        val ? <li key={key}>{key}</li> : null,
+                      )}
+                    </ul>
+                  </div>
+
+                  <div className="mt-2">
+                    <strong>Notifications:</strong>
+                    <ul className="list-disc list-inside text-xs">
+                      {Object.entries(member.notificationPrefs).map(([key, val]) =>
+                        val ? <li key={key}>{key}</li> : null,
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              )} */}
+            </div>
+          ))}
         </div>
       </div>
     </div>

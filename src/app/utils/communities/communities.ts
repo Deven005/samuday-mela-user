@@ -1,13 +1,12 @@
-import { serverAuth, serverFirestore } from '@/app/config/firebase.server.config';
+import { serverFirestore } from '@/app/config/firebase.server.config';
 import { generateSlug } from '../slugify/slugify';
 import { FieldPath, Timestamp } from 'firebase-admin/firestore';
 import { parseError } from '../utils';
-import { cookies } from 'next/headers';
 import { getMembersCountByCommunityIds, getOwnerNamesByUids } from './communityEnrich';
 import { verifySession } from '../auth/auth';
 
 export type CommunityType = {
-  //   communityId: string;
+  communityId: string;
   name: string;
   description: string;
   slug: string;
@@ -17,14 +16,13 @@ export type CommunityType = {
   logo: string;
   banner: string;
   ownerName: string;
-  membersCount: number;
-  isJoined: boolean;
+  // membersCount: number;
 };
 
 const CACHE_DURATION = 1000 * 60 * 5; // 5 minutes
 const communitiesCollName = 'communities',
   communitiesMembersCollName = 'community_members';
-const communitiesBySlugCache: Record<string, { data: any; timestamp: number }> = {};
+const communitiesByIdOrSlugCache: Record<string, { data: any; timestamp: number }> = {};
 
 type CacheEntry = {
   timestamp: number;
@@ -39,12 +37,12 @@ let communitiesSlugCache: {
   timestamp: number;
 } | null = null;
 
-// ✅ Use per-user cache map
+// ✅ Use per-community cache map
 const communitiesCache: Record<string, CacheEntry> = {};
 
 export async function createCommunity(formData: FormData) {
   try {
-    const userId = verifySession();
+    const userId = await verifySession();
 
     const name = formData.get('name')?.toString();
     const description = formData.get('description')?.toString();
@@ -107,7 +105,7 @@ export async function createCommunity(formData: FormData) {
 
 export async function getCommunityBySlug(slug: string) {
   const now = Date.now();
-  const cached = communitiesBySlugCache[slug];
+  const cached = communitiesByIdOrSlugCache[slug];
 
   if (cached && now - cached.timestamp < 60 * 60 * 1000) return cached.data;
 
@@ -128,6 +126,7 @@ export async function getCommunityBySlug(slug: string) {
 
   // ✅ 3. Only keep public-safe fields
   const communityData = {
+    communityId: community.communityId,
     name: community.name,
     description: community.description,
     slug: community.slug,
@@ -139,7 +138,46 @@ export async function getCommunityBySlug(slug: string) {
     ownerName: ownerMap[community.createdBy] ?? 'Unknown',
     membersCount: memberCounts[communitiesDocs.docs[0].id] ?? 0,
   } as CommunityType;
-  communitiesBySlugCache[slug] = { data: communityData, timestamp: now };
+  communitiesByIdOrSlugCache[slug] = { data: communityData, timestamp: now };
+  return communityData;
+}
+
+export async function getCommunityById(communityId: string) {
+  const now = Date.now();
+  const cached = communitiesByIdOrSlugCache[communityId];
+
+  if (cached && now - cached.timestamp < 60 * 60 * 1000) return cached.data;
+
+  console.log('fetching community by slug');
+  const communitiesDocs = await serverFirestore
+    .collection(communitiesCollName)
+    .where('communityId', '==', communityId)
+    .limit(1)
+    .get();
+  if (communitiesDocs.empty) throw new Error('No community found');
+
+  const community = communitiesDocs.docs[0].data() as CommunityType;
+
+  const [ownerMap, memberCounts] = await Promise.all([
+    getOwnerNamesByUids([community.createdBy]),
+    getMembersCountByCommunityIds([communitiesDocs.docs[0].id]),
+  ]);
+
+  // ✅ 3. Only keep public-safe fields
+  const communityData = {
+    communityId: community.communityId,
+    name: community.name,
+    description: community.description,
+    slug: community.slug,
+    createdAt: community.createdAt,
+    createdBy: community.createdBy,
+    visibility: community.visibility,
+    logo: community.logo,
+    banner: community.banner,
+    ownerName: ownerMap[community.createdBy] ?? 'Unknown',
+    membersCount: memberCounts[communitiesDocs.docs[0].id] ?? 0,
+  } as CommunityType;
+  communitiesByIdOrSlugCache[communityId] = { data: communityData, timestamp: now };
   return communityData;
 }
 
