@@ -57,6 +57,8 @@ export interface UserState {
   listeners: (() => void)[];
   fcmToken: string | undefined;
   loadingProvider: string;
+  loading: boolean;
+  setLoading: (loading: boolean) => void;
   setUser: (user: CurrentUser) => void;
   setFcmToken: (fcmToken: string) => void;
   updateUser: (user: CurrentUser) => Promise<void>;
@@ -94,6 +96,8 @@ export const useUserStore = create<UserState>()(
         user: null,
         fcmToken: undefined,
         loadingProvider: '',
+        loading: false,
+        setLoading: (loading) => set({ loading }),
         setHasHydrated: () => set({ _hasHydrated: true }),
         setLoadingProvider: (providerId: string) => set({ loadingProvider: providerId }),
         setUser: (user) => set({ user }),
@@ -171,6 +175,11 @@ export const useUserStore = create<UserState>()(
 
             // Update local Zustand store with new user data
             set({ user: updatedUser });
+
+            await fetchWithAppCheck('/api/user/update', (await user?.getIdToken()) ?? '', {
+              method: 'POST',
+              // body: JSON.stringify({ encryptedData: await encryptJsonPayloadClient(signInBody) }),
+            });
 
             await sendNotification({
               topic: user?.uid ?? '',
