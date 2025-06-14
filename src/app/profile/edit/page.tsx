@@ -15,7 +15,7 @@ import { showCustomToast } from '@/app/components/showCustomToast';
 
 const EditProfile = () => {
   // const user = useUserStore(useShallow((state) => state.user));
-  const { user, updateUser } = useUserStore((state) => state);
+  const { user, updateUser, loading, setLoading } = useUserStore((state) => state);
   const router = useRouter();
 
   const [editedUser, setEditedUser] = useState({
@@ -69,6 +69,7 @@ const EditProfile = () => {
 
   const handleSave = async () => {
     try {
+      setLoading(true);
       const updatedUser = {
         ...user,
         ...editedUser,
@@ -81,20 +82,28 @@ const EditProfile = () => {
 
       if (!isEqualExceptUpdatedAt(user, updatedUser)) {
         await updateUser(updatedUser);
+
+        router.push('/profile');
+        router.refresh();
+
         showCustomToast({
           title: 'Profile Update',
           message: 'Profile is updated successfully!',
           type: 'success',
         });
+      } else {
+        router.push('/profile');
+        router.refresh();
       }
-      router.back();
-      router.refresh();
     } catch (error) {
+      // setLoading(false);
       showCustomToast({
         title: 'Profile Update',
         message: 'Profile is not updated!',
         type: 'error',
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -155,7 +164,7 @@ const EditProfile = () => {
             placeholder="Your Name"
           />
 
-          <InputField
+          {/* <InputField
             id="phoneNumber"
             value={editedUser.phoneNumber}
             onChange={handleChange}
@@ -163,7 +172,7 @@ const EditProfile = () => {
             required
             // className="input input-bordered w-full"
             placeholder="Phone"
-          />
+          /> */}
 
           <TextAreaField
             id="address"
@@ -216,12 +225,14 @@ const EditProfile = () => {
           <Button
             onClick={handleSave}
             className="btn btn-lg w-1/2 rounded-md shadow-md hover:shadow-2xl"
+            disabled={loading}
           >
             Save
           </Button>
           <Button
             onClick={handleCancel}
             className="btn btn-outline btn-lg w-1/2 rounded-md hover:bg-gray-200 ml-4 text-base-content hover:text-black"
+            disabled={loading}
           >
             Cancel
           </Button>
