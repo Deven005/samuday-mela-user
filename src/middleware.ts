@@ -49,7 +49,7 @@ export async function middleware(request: NextRequest) {
       'settings',
       'vendor',
       'partner',
-      'add',
+      // 'add',
       'update',
       'delete',
     ];
@@ -61,12 +61,12 @@ export async function middleware(request: NextRequest) {
       }
     } else if (pathname.startsWith('/posts/')) {
       const slug = pathname.split('/posts/')[1];
-      if (reserved.includes(slug) || slug.length < 8) {
+      if (reserved.includes(slug) && slug.length < 8) {
         return NextResponse.redirect(new URL('/404', request.url));
       }
     } else if (pathname.startsWith('/communities/')) {
       const slug = pathname.split('/communities/')[1];
-      if (reserved.includes(slug) || slug.length < 8) {
+      if ((reserved.includes(slug) || slug.length < 8) && slug !== 'join') {
         return NextResponse.redirect(new URL('/404', request.url));
       }
     }
