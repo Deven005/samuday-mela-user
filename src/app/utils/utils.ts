@@ -41,10 +41,11 @@ export interface UserType {
   uid: string;
 }
 
-let user: DocumentData | undefined; // ✅ Store cached data in a singleton variable
+// let user: DocumentData | undefined; // ✅ Store cached data in a singleton variable
 const cachedAppData: Record<string, { data: AppData; timestamp: number }> = {},
   cache: Record<string, { data: UserType; timestamp: number }> = {},
   userByIdCache: Record<string, { data: UserType; timestamp: number }> = {};
+let userCache: Record<string, { data: DocumentData | undefined; timestamp: number }> = {};
 
 export async function getAppData() {
   const now = Date.now();
@@ -61,23 +62,37 @@ export async function getAppData() {
   return cachedAppData['app-data'].data; // ✅ Return cached data instead of refetching
 }
 
-export async function getUserData() {
+export async function getUserData(forceUpdate?: boolean) {
   try {
     const sessionCookie = (await cookies()).get('session')?.value;
 
     if (!sessionCookie) {
-      user = undefined; // ✅ Reset user if no session exists
+      // user = undefined; // ✅ Reset user if no session exists
+      userCache = {};
       return undefined;
     }
     const decodedToken = await serverAuth.verifySessionCookie(sessionCookie, true);
-
-    if (!user) {
-      user = (await serverFirestore.doc(`Users/${decodedToken.uid}`).get()).data();
+    if (forceUpdate) {
+      delete userCache[decodedToken.uid];
     }
-    return user?.uid === decodedToken.uid ? user : undefined;
+
+    const now = Date.now();
+    const userDataCache = userCache[decodedToken.uid];
+
+    if (userDataCache && now - userDataCache.timestamp < 60 * 60 * 1000) {
+      return userDataCache.data;
+    }
+    console.log('Fetching user data from Firestore...');
+
+    userCache[decodedToken.uid] = {
+      data: (await serverFirestore.doc(`Users/${decodedToken.uid}`).get()).data(), // ✅ Cache the result
+      timestamp: now,
+    };
+
+    return userCache[decodedToken.uid].data;
   } catch (error) {
     console.error('Error fetching user data:', error);
-    user = undefined;
+    userCache = {};
     return undefined;
   }
 }
@@ -106,7 +121,6 @@ export async function getUserDataByUid(uid: string) {
     return publicData;
   } catch (error) {
     console.error('Error fetching user data:', error);
-    user = undefined;
     return undefined;
   }
 }
@@ -150,7 +164,7 @@ export async function getUserDataSlug(slug: string) {
 }
 
 export async function clearUserData() {
-  user = undefined;
+  userCache = {};
 }
 
 export async function getNotifications() {
