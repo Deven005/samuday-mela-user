@@ -15,7 +15,7 @@ interface HeaderProps {
 export default async function Header({ appData }: HeaderProps) {
   const headerData = await headers();
   const pathname = headerData.get('next-url') || '/';
-  const user = await getUserData();
+  const user = await getUserData({});
 
   const isActive = (route: string) =>
     pathname === route ? 'bg-base-200 font-semibold' : 'hover:bg-base-100';

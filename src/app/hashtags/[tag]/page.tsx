@@ -1,6 +1,6 @@
 import PostCard from '@/app/components/Post/PostCard';
 import { getPostsByTag, getPostsMainEntity, PostDetailsProps } from '@/app/utils/post/post';
-import { AppData, getAppData, getUserDataByUid, UserType } from '@/app/utils/utils';
+import { AppData, getAppData } from '@/app/utils/utils';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 

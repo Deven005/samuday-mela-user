@@ -7,7 +7,7 @@ export default async function Home() {
   let user: DocumentData | null | undefined = null;
 
   try {
-    user = await getUserData();
+    user = await getUserData({});
   } catch (error: any) {
     console.log('Layout:', error ?? 'Something is wrong!');
   }

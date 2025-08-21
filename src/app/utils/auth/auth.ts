@@ -33,7 +33,7 @@ export async function createSession({ origin, idToken, headers, fcmTokens }: Ses
 
     const ip = origin.includes('localhost')
       ? // ? '152.59.23.76'
-        '192.168.100.100'
+        `192.168.100.${Math.floor(Math.random() * 200)}`
       : headers.get('x-forwarded-for')?.toString().split(',')[0] || null;
 
     // Validate ID token
@@ -69,9 +69,10 @@ export async function createSession({ origin, idToken, headers, fcmTokens }: Ses
       });
     }
 
-    const geoRes = await fetch(`https://ipapi.co/${ip}/json/`);
+    // const geoRes = await fetch(`https://ipapi.co/${ip}/json/`);
+    const geoRes = await fetch(`https://ipapi.co/json/`);
     const geo = await geoRes.json();
-    console.log('geo: ', geo);
+    // console.log('geo: ', geo);
 
     if (geo.error != true) {
       const loginRef = serverFirestore.collection(`userLogins`);
@@ -150,7 +151,7 @@ export async function createSession({ origin, idToken, headers, fcmTokens }: Ses
       await subscribeToFcmTopicServerSide({ tokens: fcmTokens, topic: verifiedUser.uid });
       await subscribeToFcmTopicServerSide({ tokens: fcmTokens, topic: 'global' });
     }
-    await getUserData();
+    await getUserData({ localId: verifiedUser.uid, forceUpdate: true });
   } catch (error) {
     throw error;
   }

@@ -41,6 +41,11 @@ export interface UserType {
   uid: string;
 }
 
+interface GetUserType {
+  localId?: string | undefined;
+  forceUpdate?: boolean | undefined;
+}
+
 // let user: DocumentData | undefined; // ✅ Store cached data in a singleton variable
 const cachedAppData: Record<string, { data: AppData; timestamp: number }> = {},
   cache: Record<string, { data: UserType; timestamp: number }> = {},
@@ -62,34 +67,41 @@ export async function getAppData() {
   return cachedAppData['app-data'].data; // ✅ Return cached data instead of refetching
 }
 
-export async function getUserData(forceUpdate?: boolean) {
+export async function getUserData({ localId, forceUpdate }: GetUserType) {
   try {
+    const now = Date.now();
     const sessionCookie = (await cookies()).get('session')?.value;
 
-    if (!sessionCookie) {
+    let userDataCache;
+    if (sessionCookie) {
+      const decodedToken = await serverAuth.verifySessionCookie(sessionCookie, true);
+      if (forceUpdate) {
+        delete userCache[decodedToken.uid];
+      }
+      userDataCache = userCache[decodedToken.uid];
+      localId = decodedToken.uid;
+    } else if (localId) {
+      if (forceUpdate) {
+        delete userCache[localId];
+      }
+      userDataCache = userCache[localId];
+    } else {
       // user = undefined; // ✅ Reset user if no session exists
       userCache = {};
       return undefined;
     }
-    const decodedToken = await serverAuth.verifySessionCookie(sessionCookie, true);
-    if (forceUpdate) {
-      delete userCache[decodedToken.uid];
-    }
-
-    const now = Date.now();
-    const userDataCache = userCache[decodedToken.uid];
 
     if (userDataCache && now - userDataCache.timestamp < 60 * 60 * 1000) {
       return userDataCache.data;
     }
     console.log('Fetching user data from Firestore...');
 
-    userCache[decodedToken.uid] = {
-      data: (await serverFirestore.doc(`Users/${decodedToken.uid}`).get()).data(), // ✅ Cache the result
+    userCache[localId] = {
+      data: (await serverFirestore.doc(`Users/${localId}`).get()).data(), // ✅ Cache the result
       timestamp: now,
     };
 
-    return userCache[decodedToken.uid].data;
+    return userCache[localId].data;
   } catch (error) {
     console.error('Error fetching user data:', error);
     userCache = {};
@@ -169,7 +181,7 @@ export async function clearUserData() {
 
 export async function getNotifications() {
   try {
-    const uid = (await getUserData())?.uid;
+    const uid = (await getUserData({}))?.uid;
 
     if (!uid) {
       return [];

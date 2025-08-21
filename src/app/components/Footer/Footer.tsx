@@ -8,7 +8,7 @@ interface FooterPropType {
 }
 
 const Footer = async ({ appData }: FooterPropType) => {
-  const user = await getUserData();
+  const user = await getUserData({});
   const year = new Date().getFullYear();
 
   return (

@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const userData = await getUserData();
+    const userData = await getUserData({ localId });
     const customToken = await serverAuth.createCustomToken(localId, { user: true });
 
     return NextResponse.json({

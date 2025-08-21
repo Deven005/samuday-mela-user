@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(req: NextRequest) {
   try {
     await clearUserData();
-    await getUserData(true);
+    await getUserData({ forceUpdate: true });
     return NextResponse.json({ message: 'Profile is updated!' }, { status: 200, statusText: 'OK' });
   } catch (error) {
     const parsed = parseError(error);

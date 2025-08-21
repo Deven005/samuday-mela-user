@@ -1,5 +1,5 @@
 import { getPostSlug, MediaFile, PostDetailsProps } from '@/app/utils/post/post';
-import { formatLocalDate, getUserDataByUid, getUserDataSlug } from '@/app/utils/utils';
+import { formatLocalDate, getUserDataByUid } from '@/app/utils/utils';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 
