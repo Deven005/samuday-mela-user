@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [{ hostname: '**', pathname: '**' }],
   },
+  allowedDevOrigins: ['http://192.168.31.149', '*.192.168.31.149'],
 };
 
 export default nextConfig;
