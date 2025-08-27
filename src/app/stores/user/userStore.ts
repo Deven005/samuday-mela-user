@@ -7,6 +7,7 @@ import {
   User,
   signInWithCustomToken,
   UserInfo,
+  sendEmailVerification,
 } from 'firebase/auth';
 import { analytics, auth, firestore, performance } from '../../config/firebase.config';
 import { doc, getDoc, onSnapshot, Timestamp, updateDoc } from 'firebase/firestore';
@@ -417,10 +418,10 @@ export const useUserStore = create<UserState>()(
         runAfterSignIn: async (user: User, userData, onSuccess?: () => void) => {
           try {
             const { listenToUser } = get();
-            auth.languageCode = userData.preferredLanguage ?? 'hi';
-            // if (!user.emailVerified) {
-            //   await sendEmailVerification(user);
-            // }
+            auth.languageCode = userData?.preferredLanguage ?? 'hi';
+            if (!user.emailVerified) {
+              await sendEmailVerification(user);
+            }
             if (onSuccess) onSuccess();
             set({
               user: userData,
