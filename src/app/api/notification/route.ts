@@ -1,6 +1,5 @@
 // /api/notification/route.ts
 import { serverMessaging } from '@/app/config/firebase.server.config';
-import { Message } from 'firebase-admin/messaging';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs'; // Ensure this runs in Node.js
