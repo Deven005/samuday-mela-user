@@ -24,7 +24,9 @@
     "react-staggered-grid": "^1.0.18",
     "react-toastify": "^11.0.5",
     "tailwind-merge": "^3.2.0",
-    "zustand": "^5.0.3"
+    "zcatalyst-sdk-node": "^3.1.0",
+    "zustand": "^5.0.3",
+    "zcatalyst-nextjs-plugin": "https://mytemplate-development.zohostratus.com/zcatalyst-nextjs-plugin-1.0.44.tgz"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

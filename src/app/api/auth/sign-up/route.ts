@@ -3,6 +3,7 @@ import { serverAuth } from '@/app/config/firebase.server.config';
 import { createSession, getOrCreateUser } from '@/app/utils/auth/auth';
 import { rsaDecrypt } from '@/app/utils/utils';
 import { NextRequest, NextResponse } from 'next/server';
+var catalyst = require('zcatalyst-sdk-node');
 
 export const runtime = 'nodejs';
 
@@ -42,6 +43,22 @@ export async function POST(req: NextRequest) {
       },
     );
     const signInData = await signInRes.json();
+
+    // const catalystApp = catalyst.initialize(req);
+    // const fullName = (displayName as string).split(' ', 2);
+    // var res = await catalystApp.userManagement().generateCustomToken({
+    //   type: 'web',
+    //   user_details: {
+    //     email_id: email,
+    //     first_name: fullName[0],
+    //     last_name: fullName[1],
+    //     // org_id: '${org_id}', //optional
+    //     // role_name: '${role_name}', //optional
+    //   },
+    // });
+    // //Get a UserManagement Instance
+
+    // console.log('zoho -> generateCustomToken', res);
 
     console.log('signInData: ', signInData);
 

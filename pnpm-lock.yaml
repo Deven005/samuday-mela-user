@@ -47,6 +47,9 @@ importers:
       tailwind-merge:
         specifier: ^3.2.0
         version: 3.3.0
+      zcatalyst-sdk-node:
+        specifier: ^3.1.0
+        version: 3.1.0
       zustand:
         specifier: ^5.0.3
         version: 5.0.4(@types/react@19.1.4)(react@19.1.0)
@@ -2812,6 +2815,10 @@ packages:
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
+
+  zcatalyst-sdk-node@3.1.0:
+    resolution: {integrity: sha512-oag/t6lINDYfjpG0yrztwEqiqlPdWZyiz7hEqo9/II92aIoH1Gzg8GJ3P4eLHNopEFsCuaW41MTZcJLkNl2wRA==}
+    engines: {node: '>=10.0.0'}
 
   zod-to-json-schema@3.24.5:
     resolution: {integrity: sha512-/AuWwMP+YqiPbsJx5D6TfgRTc4kTLjsh5SOcd4bLsfUg2RcEXrFMJl1DGgdHy2aCfsIA/cr/1JM0xcB2GZji8g==}
@@ -6051,6 +6058,8 @@ snapshots:
       yargs-parser: 21.1.1
 
   yocto-queue@0.1.0: {}
+
+  zcatalyst-sdk-node@3.1.0: {}
 
   zod-to-json-schema@3.24.5(zod@3.24.4):
     dependencies:
