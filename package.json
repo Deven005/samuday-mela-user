@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "preinstall": "node scripts/download-plugin.js",
     "dev": "cross-env NODE_OPTIONS='--inspect' next dev --turbopack",
     "build": "next build",
     "start": "next start",
@@ -25,8 +26,7 @@
     "react-toastify": "^11.0.5",
     "tailwind-merge": "^3.2.0",
     "zcatalyst-sdk-node": "^3.1.0",
-    "zustand": "^5.0.3",
-    "zcatalyst-nextjs-plugin": "https://mytemplate-development.zohostratus.com/zcatalyst-nextjs-plugin-1.0.44.tgz"
+    "zustand": "^5.0.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
