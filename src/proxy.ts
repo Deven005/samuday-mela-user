@@ -1,4 +1,4 @@
-// middleware.ts
+// proxy.ts
 import { cookies } from 'next/headers';
 import { NextResponse, NextRequest } from 'next/server';
 
@@ -27,7 +27,7 @@ const PUBLIC_PATHS = [
 ];
 const ROOT_PATH = '/';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname, origin } = request.nextUrl;
   console.log('pathname: ', pathname);
 
