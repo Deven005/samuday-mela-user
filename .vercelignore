@@ -1,0 +1,17 @@
+node_modules/
+*.log
+*.md
+*.test.js
+*.ts
+*.tgz
+*.zip
+.git/
+.vercel/
+.venv/
+dist/
+.next/
+*.log
+*.cache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
